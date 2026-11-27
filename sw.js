@@ -1,6 +1,6 @@
 // Service worker: deja la app disponible sin internet y se actualiza sola.
 // Cambia VERSION cada vez que subas cambios importantes.
-const VERSION = 'torre-v2';
+const VERSION = 'torre-v3';
 const ARCHIVOS = ['./', './index.html', './style.css', './sync.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
