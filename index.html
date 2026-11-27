@@ -172,6 +172,11 @@
 
 <!-- ===================== BITÁCORA ===================== -->
 <section class="tab" id="tab-bitacora">
+  <div class="card" id="cuentaCard">
+    <h2>Cuenta y sincronización</h2>
+    <div id="cuentaBody"><p class="note" style="margin:0;">Para sincronizar entre dispositivos necesitas internet. Si ves esto sin cambiar, la conexión con Firebase no cargó.</p></div>
+  </div>
+
   <div class="card">
     <h2>Nueva entrada</h2>
     <label for="logDate">Fecha</label>
@@ -230,8 +235,8 @@ const $ = id => document.getElementById(id);
 const hoyISO = () => new Date().toLocaleDateString('en-CA');           // YYYY-MM-DD, hora local
 const diasDesde = iso => Math.round((new Date(hoyISO()+'T00:00:00') - new Date(iso+'T00:00:00')) / 86400000);
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} if(window.__torreCambio) window.__torreCambio(k); }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} if(window.__torreCambio) window.__torreCambio(k); }
 function jsonGet(k,def){ try{ const v=lsGet(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
 function jsonSet(k,v){ lsSet(k, JSON.stringify(v)); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1254,5 +1259,6 @@ async function preguntarIA(){
   animarTab('hoy');
 })();
 </script>
+<script type="module" src="sync.js"></script>
 </body>
 </html>
