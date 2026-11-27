@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#E8E7DF">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Torre">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Mi Torre — Guía de cultivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="mast">
+  <svg class="mast-vine" id="mastVine" viewBox="0 0 200 230" preserveAspectRatio="xMaxYMax meet" aria-hidden="true"></svg>
+  <div class="mast-top"><span id="eyebrow">Torre vertical · Tampico</span><span class="stamp">100% sol</span></div>
+  <h1 class="mast-title"><span>Mi</span><span>Torre</span></h1>
+  <p class="mast-sub" id="saludo">Hola</p>
+</header>
+
+<main>
+
+<!-- ===================== HOY ===================== -->
+<section class="tab active" id="tab-hoy">
+
+  <div class="hero" id="hero">
+    <div class="empty">Cargando el clima de Tampico…</div>
+  </div>
+
+  <div class="card">
+    <h2>Qué hacer hoy con el clima</h2>
+    <div id="recs"></div>
+  </div>
+
+  <div class="card">
+    <h2>Checklist de hoy</h2>
+    <div id="checklist"></div>
+  </div>
+
+  <div class="card">
+    <h2>Próximas cosechas</h2>
+    <div id="proximas"></div>
+  </div>
+
+  <div class="card">
+    <details class="fold">
+      <summary>Preguntarle a una IA (opcional)</summary>
+      <div>
+        <p class="note" style="margin-top:0;">Usa tu propia llave de Anthropic (console.anthropic.com). Se guarda solo en este navegador, nunca en el archivo. No la pegues en el código ni la subas a GitHub. Te contesta con el contexto de tu torre: qué plantas tienes, sus edades y el clima de hoy.</p>
+        <label for="apiKey">Tu API key</label>
+        <input type="password" id="apiKey" placeholder="sk-ant-...">
+        <label for="aiQuestion">Tu pregunta</label>
+        <input type="text" id="aiQuestion" placeholder="ej. ¿la fresa aguanta este calor?">
+        <button class="btn" onclick="preguntarIA()">Preguntar</button>
+        <div id="aiAnswer" class="ai-answer"></div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ===================== TORRE ===================== -->
+<section class="tab" id="tab-torre">
+  <div class="card">
+    <h2>Tu torre</h2>
+    <p class="note" style="margin-top:0;">Toca un hueco para ponerle planta y fecha de siembra. Un punto dorado significa que ya se puede cosechar. Borde punteado = falta la fecha. Un + es un hueco vacío.</p>
+    <div class="tower-wrap" id="towerGraphic"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="card">
+    <h2>Tamaño de la torre</h2>
+    <div class="stepper">
+      <button onclick="cambiarHuecos(-2)" aria-label="Quitar una fila">− fila</button>
+      <button onclick="cambiarHuecos(-1)" aria-label="Quitar un hueco">−</button>
+      <div class="count"><b id="nHuecos">18</b><span>huecos</span></div>
+      <button onclick="cambiarHuecos(1)" aria-label="Agregar un hueco">+</button>
+      <button onclick="cambiarHuecos(2)" aria-label="Agregar una fila">+ fila</button>
+    </div>
+    <p class="note">Una fila son 2 huecos (uno a cada lado). Los huecos nuevos se agregan arriba y quedan vacíos; al quitar, se quitan los de arriba. Mínimo 1, máximo 40.</p>
+    <div class="row2" style="margin-top:10px;">
+      <input type="number" id="huecosExacto" min="1" max="40" placeholder="Ej. 12">
+      <button class="btn small" style="margin-top:0;" onclick="fijarHuecos()">Poner esa cantidad</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Agua y bomba</h2>
+    <label for="cicloSelect">Ciclo de cambio de agua</label>
+    <select id="cicloSelect" onchange="cambiarCiclo(this.value)">
+      <option value="5">Cada 5 días</option>
+      <option value="7">Cada 7 días (ideal)</option>
+      <option value="10">Cada 10 días</option>
+    </select>
+    <label for="bombaSelect">Duración del riego con la bomba</label>
+    <select id="bombaSelect" onchange="cambiarBombaMin(this.value)">
+      <option value="5">5 minutos</option>
+      <option value="10">10 minutos</option>
+      <option value="15">15 minutos</option>
+      <option value="30">30 minutos</option>
+    </select>
+    <p class="note">La cubeta cambia de color conforme se gasta el agua; toca "Ya cambié el agua" cuando la renueves. La bomba (a la izquierda) es un cronómetro: tú la prendes y apagas a mano cuando te avise.</p>
+  </div>
+</section>
+
+<!-- ===================== PLANTAS ===================== -->
+<section class="tab" id="tab-plantas">
+
+  <div class="card">
+    <details class="fold">
+      <summary>Mezcla de nutrientes, paso a paso</summary>
+      <div>
+        <p class="note" style="margin-top:0;">Base barata: Triple 17 + nitrato de calcio + sulfato de magnesio (sal de Epsom). Si prefieres no mezclar tres cosas, un fertilizante hidropónico ya formulado como General Hydroponics FloraSeries trae todo balanceado.</p>
+        <ol class="steps">
+          <li>Llena el depósito con agua fresca (mejor temprano, que se calienta rápido afuera).</li>
+          <li>Disuelve el <b>nitrato de calcio</b> aparte en un poco de agua, agrégalo y mezcla.</li>
+          <li>Disuelve el <b>Triple 17</b> aparte, agrégalo y mezcla.</li>
+          <li>Disuelve el <b>sulfato de magnesio</b> aparte, agrégalo y mezcla.</li>
+          <li>Mide con el medidor TDS y ve agregando poco a poco hasta llegar al objetivo (abajo). No pongas todo de golpe: pasarte quema raíces.</li>
+          <li>Al final ajusta el <b>pH a 5.8–6.0</b> con ácido cítrico (baja) o bicarbonato (sube), de poquito en poquito.</li>
+        </ol>
+        <p class="note">Nunca mezcles concentrados de calcio con sulfatos o fosfatos en el mismo bote: se forman grumos que ya no sirven. No te doy gramos exactos porque dependen de tu bolsa; guíate por el medidor.</p>
+        <div class="kv" style="margin-top:12px;">
+          <div class="k">Todo en crecimiento</div><div class="v">800–1200 ppm · fórmula vegetativa</div>
+          <div class="k">Con flores</div><div class="v">1200–1800 ppm · fórmula floración</div>
+          <div class="k">pH de toda la torre</div><div class="v">5.8–6.0</div>
+        </div>
+        <dl class="gl">
+          <dt>pH</dt><dd>Qué tan ácida es el agua. Si se sale de rango, la planta no logra absorber los nutrientes aunque estén en el agua.</dd>
+          <dt>EC / TDS / ppm</dt><dd>Qué tan concentrados están los nutrientes. Es la misma idea en distintas unidades; los medidores baratos dan ppm.</dd>
+          <dt>N-P-K</dt><dd>Nitrógeno (hojas), Fósforo (raíz y flores), Potasio (frutos).</dd>
+          <dt>Calibrar</dt><dd>Afinar el medidor con su líquido de referencia cada 2–4 semanas.</dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <label for="busca" style="margin-top:0;">Buscar planta</label>
+    <input type="text" id="busca" placeholder="ej. albahaca, tomate, kale…" oninput="renderFichas()">
+    <p class="note" id="fichasConteo"></p>
+    <p class="note">Insignia = qué tan bien va en torre: <b>Ideal</b>, <b>Buena</b>, <b>Complicada</b> (ocupa mucho o pide cuidados extra) o <b>Experimental</b> (poco documentada). Los datos son aproximados.</p>
+  </div>
+
+  <div id="fichas"></div>
+
+  <div class="card">
+    <details class="fold">
+      <summary>Mejor no las pongas en la torre</summary>
+      <div>
+        <p class="note" style="margin-top:0;">Algunas sí se pueden cultivar en hidroponía, pero en otro tipo de sistema (cubeta individual, DWC o Dutch bucket), no en una torre.</p>
+        <dl class="nr">
+          <dt>Papa, zanahoria, betabel, nabo</dt><dd>Raíz o tubérculo grande: necesitan espacio y sostén que un hueco de torre no da.</dd>
+          <dt>Maíz</dt><dd>Muy alto y pesado, se cae en una torre.</dd>
+          <dt>Calabaza, sandía, melón</dt><dd>Guías enormes y frutos pesados.</dd>
+          <dt>Brócoli, coliflor, col</dt><dd>Plantas grandes que ocupan el espacio de varios huecos y tardan mucho.</dd>
+          <dt>Cebolla de bulbo, ajo</dt><dd>Muy lentas y de bulbo grande; rinden más en tierra.</dd>
+          <dt>Arándano</dt><dd>Pide un pH muy ácido (4.5–5.5), distinto al del resto de tu torre, y tarda años en dar fruto.</dd>
+          <dt>Frambuesa, zarzamora</dt><dd>Arbustos perennes grandes; no caben en un hueco.</dd>
+          <dt>Árboles frutales</dt><dd>Ni lo intentes en torre: necesitan años y raíz enorme.</dd>
+        </dl>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ===================== BITÁCORA ===================== -->
+<section class="tab" id="tab-bitacora">
+  <div class="card">
+    <h2>Nueva entrada</h2>
+    <label for="logDate">Fecha</label>
+    <input type="date" id="logDate">
+    <label for="logType">Tipo</label>
+    <select id="logType">
+      <option value="Medición pH/EC">Medición pH/EC</option>
+      <option value="Riego">Riego</option>
+      <option value="Cambio de solución">Cambio de solución</option>
+      <option value="Poda / cosecha">Poda / cosecha</option>
+      <option value="Plaga / hongo detectado">Plaga / hongo detectado</option>
+      <option value="Otro">Otro</option>
+    </select>
+    <div class="row2">
+      <div><label for="logPh">pH</label><input type="number" step="0.1" id="logPh" placeholder="5.9"></div>
+      <div><label for="logEc">ppm</label><input type="number" id="logEc" placeholder="1000"></div>
+    </div>
+    <label for="logNotes">Notas</label>
+    <input type="text" id="logNotes" placeholder="opcional">
+    <button class="btn" onclick="guardarLog()">Guardar</button>
+  </div>
+
+  <div class="card">
+    <h2>Historial</h2>
+    <div id="logList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Respaldo</h2>
+    <p class="note" style="margin-top:0;">Tus datos viven solo en este navegador. Si cambias de celular o borras los datos del navegador se pierden, así que descarga un respaldo de vez en cuando.</p>
+    <button class="btn small" onclick="descargarRespaldo()">Descargar respaldo</button>
+    <button class="btn small ghost" onclick="document.getElementById('fileRestore').click()">Restaurar respaldo</button>
+    <input type="file" id="fileRestore" accept="application/json" style="display:none" onchange="restaurarRespaldo(this)">
+    <button class="btn small ghost" onclick="borrarHistorial()">Borrar historial</button>
+  </div>
+</section>
+
+</main>
+
+<nav class="bottom"><div class="inner">
+  <button class="active" data-tab="hoy" onclick="showTab('hoy')"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></span>Hoy</button>
+  <button data-tab="torre" onclick="showTab('torre')"><span class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="18"/><path d="M3 8h6M15 13h6M3 17h6"/></svg></span>Torre</button>
+  <button data-tab="plantas" onclick="showTab('plantas')"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 21V11M12 11C12 6 8 4 4 4c0 4 3 7 8 7zM12 14c0-4 3-6 8-6 0 4-3 7-8 6z"/></svg></span>Plantas</button>
+  <button data-tab="bitacora" onclick="showTab('bitacora')"><span class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>Bitácora</button>
+</div></nav>
+
+<div class="sheet-bg" id="sheetBg" onclick="cerrarSlot()"></div>
+<div class="sheet" id="sheet"><div id="sheetBody"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script>
+/* =========================================================
+   Utilidades
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const hoyISO = () => new Date().toLocaleDateString('en-CA');           // YYYY-MM-DD, hora local
+const diasDesde = iso => Math.round((new Date(hoyISO()+'T00:00:00') - new Date(iso+'T00:00:00')) / 86400000);
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function jsonGet(k,def){ try{ const v=lsGet(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function jsonSet(k,v){ lsSet(k, JSON.stringify(v)); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* =========================================================
+   Plantas (tiempos aproximados, vienen de lo que platicamos)
+   ========================================================= */
+const CATS = ['Hojas verdes','Hierbas','Frutos (planta de fruto)','Fresa y bayas','Raíz, tallo y otras'];
+const TORRE_TXT = {
+  Ideal:'Ideal para torre vertical',
+  Buena:'Funciona bien en torre',
+  Complicada:'Se puede, pero ocupa mucho espacio o pide cuidados extra',
+  Experimental:'Poco documentada en hidroponía: prueba primero con un solo hueco'
+};
+const VACIO = { nombre:'Vacío', emoji:'＋', color:'#9A9C90', fruto:false, cosecha:0, continua:false };
+const plantaDe = s => PLANTAS[s.p] || VACIO;
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+
+/* cosecha = días aproximados desde la siembra hasta la primera cosecha */
+const PLANTAS = {
+  /* ---------- Hojas verdes ---------- */
+  lechuga: { cat:'Hojas verdes', nombre:'Lechuga batavia', emoji:'🥬', color:'#B9D97A', torre:'Ideal', calor:'Regular (usa variedades resistentes al calor)', fruto:false, cosecha:45, continua:false,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'3–7 días. Casi sin cubrir la semilla: necesita luz.', trasplante:'12–15 días después de sembrar', cosechaTxt:'30–45 días (aprox.)',
+    tips:['Las variedades batavia/looseleaf aguantan mejor el calor que las de cabeza.','Con sol directo fuerte se quema o se espiga: malla sombra 30–50%.','Revisa hojas inferiores por mildiu o moho.'] },
+  espinaca:{ cat:'Hojas verdes', nombre:'Espinaca', emoji:'🥬', color:'#4F9D6B', torre:'Buena', calor:'Sufre (mejor de diciembre a febrero)', fruto:false, cosecha:40, continua:false,
+    ph:'6.0–7.0', ppm:'800–1200', germ:'5–10 días. Germina mal con calor: siembra en un lugar fresco.', trasplante:'14–21 días', cosechaTxt:'35–45 días',
+    tips:['Es la más sensible al calor: mejor sembrarla de diciembre a febrero.','Con calor se espiga rápido y se pone amarga.','Cosecha las hojas externas o la planta entera.'] },
+  acelga:  { cat:'Hojas verdes', nombre:'Acelga', emoji:'🥬', color:'#C95D7A', torre:'Buena', calor:'Aguanta bien', fruto:false, cosecha:55, continua:true,
+    ph:'6.0–6.5', ppm:'1000–1500', germ:'5–10 días. La semilla es un grumito con varias plantas: deja la más fuerte.', trasplante:'14–21 días', cosechaTxt:'~55 días; corte continuo de hojas externas',
+    tips:['Aguanta mejor el calor que la espinaca y es una buena sustituta.','Corta solo las hojas de afuera y sigue produciendo.','Es más grande que la lechuga: no la apretes con las de al lado.'] },
+  kale:    { cat:'Hojas verdes', nombre:'Kale (col rizada)', emoji:'🥬', color:'#3F8F7A', torre:'Buena', calor:'Aguanta bien', fruto:false, cosecha:55, continua:true,
+    ph:'5.5–6.5', ppm:'1200–1800', germ:'5–7 días', trasplante:'14–21 días', cosechaTxt:'~55 días; corte continuo',
+    tips:['Resistente y buena para principiantes.','Aguanta bien el calor, aunque con mucho sol las hojas se ponen más duras.','Corta las hojas de abajo y deja crecer el centro.'] },
+  rucula:  { cat:'Hojas verdes', nombre:'Arúgula (rúcula)', emoji:'🌿', color:'#8DBF5A', torre:'Ideal', calor:'Sufre (mejor de diciembre a febrero)', fruto:false, cosecha:30, continua:false,
+    ph:'6.0–6.5', ppm:'800–1200', germ:'3–7 días', trasplante:'10–14 días', cosechaTxt:'25–35 días',
+    tips:['Crece muy rápido.','Con calor se pone muy picante y se espiga: mejor en temporada fresca.','Resiembra cada 2–3 semanas.'] },
+  pakchoi: { cat:'Hojas verdes', nombre:'Pak choi (col china)', emoji:'🥬', color:'#A6D18F', torre:'Buena', calor:'Regular', fruto:false, cosecha:40, continua:false,
+    ph:'5.5–6.5', ppm:'1000–1500', germ:'3–7 días', trasplante:'14–18 días', cosechaTxt:'35–45 días',
+    tips:['Crece compacto y rápido.','Con mucho calor se espiga.','Cosecha la planta entera o las hojas externas.'] },
+  mostaza: { cat:'Hojas verdes', nombre:'Mostaza (hojas)', emoji:'🥬', color:'#9BB84B', torre:'Buena', calor:'Regular', fruto:false, cosecha:35, continua:true,
+    ph:'6.0–6.5', ppm:'800–1200', germ:'3–7 días', trasplante:'10–14 días', cosechaTxt:'30–40 días; corte continuo',
+    tips:['De las más rápidas.','Con calor el sabor se vuelve más picante.','Corta las hojas externas y sigue dando.'] },
+  berro:   { cat:'Hojas verdes', nombre:'Berro', emoji:'🌱', color:'#5CAF84', torre:'Buena', calor:'Regular (le gusta el agua fresca)', fruto:false, cosecha:30, continua:true,
+    ph:'6.0–6.5', ppm:'800–1200', germ:'3–7 días', trasplante:'14–21 días, o por esqueje en agua', cosechaTxt:'30–40 días; corte continuo',
+    tips:['Le gusta el agua fresca: cubeta a la sombra.','Se puede propagar con esquejes en agua.','Con mucho calor se espiga.'] },
+
+  /* ---------- Hierbas ---------- */
+  albahaca:{ cat:'Hierbas', nombre:'Albahaca', emoji:'🌿', color:'#5FB36B', torre:'Ideal', calor:'Aguanta bien', fruto:false, cosecha:40, continua:true,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'3–7 días', trasplante:'14–21 días', cosechaTxt:'30–40 días; corte continuo',
+    tips:['Le va muy bien el calor y la humedad de Tampico.','Pellizca las flores para que siga dando hojas.','Evita mojarle las hojas por la noche.'] },
+  cilantro:{ cat:'Hierbas', nombre:'Cilantro', emoji:'🌱', color:'#9CC7A1', torre:'Ideal', calor:'Regular (se espiga con calor)', fruto:false, cosecha:45, continua:false,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'7–14 días (irregular, no te desesperes).', trasplante:'20–25 días después de sembrar', cosechaTxt:'~45 días; conviene resembrar seguido',
+    tips:['Con calor se espiga (bolting): dale sombra en horas pico.','Resiembra cada 3–4 semanas para tener siempre.','Con humedad alta vigila las hojas de abajo por moho.'] },
+  menta:   { cat:'Hierbas', nombre:'Menta', emoji:'🌿', color:'#7FB69E', torre:'Ideal', calor:'Aguanta bien', fruto:false, cosecha:45, continua:true,
+    ph:'6.0–6.8', ppm:'800–1200', germ:'10–15 días (irregular). Mejor por esqueje: 7–10 días en agua o rockwool.', trasplante:'Cuando tenga raíz visible', cosechaTxt:'Primer corte ~45 días; luego cada 3–4 semanas',
+    tips:['Su raíz es invasiva: déjala en las esquinas o huecos de abajo.','Tolera un pH un poco más alto que el resto.','Aguanta muy bien el calor de Tampico.'] },
+  perejil: { cat:'Hierbas', nombre:'Perejil', emoji:'🌿', color:'#6FAE5A', torre:'Ideal', calor:'Regular', fruto:false, cosecha:75, continua:true,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'14–28 días (muy lento)', trasplante:'25–35 días', cosechaTxt:'~75 días; corte continuo',
+    tips:['La semilla tarda mucho en germinar: paciencia.','Una vez establecido produce por meses.','Corta los tallos de afuera.'] },
+  oregano: { cat:'Hierbas', nombre:'Orégano', emoji:'🌿', color:'#7E9E5B', torre:'Buena', calor:'Aguanta bien', fruto:false, cosecha:85, continua:true,
+    ph:'6.0–7.0', ppm:'800–1200', germ:'7–14 días', trasplante:'25–35 días', cosechaTxt:'~85 días; corte continuo',
+    tips:['Aguanta bien el calor.','Crece lento al principio.','Por esqueje es más rápido que por semilla.'] },
+  tomillo: { cat:'Hierbas', nombre:'Tomillo', emoji:'🌿', color:'#8AA77A', torre:'Buena', calor:'Aguanta bien', fruto:false, cosecha:95, continua:true,
+    ph:'6.0–7.0', ppm:'800–1200', germ:'14–21 días (lento)', trasplante:'30–40 días', cosechaTxt:'~95 días; corte continuo',
+    tips:['Muy lento al inicio: mejor por esqueje.','Aguanta calor.','No le gusta el exceso de humedad en las hojas.'] },
+  romero:  { cat:'Hierbas', nombre:'Romero', emoji:'🌿', color:'#6E8F6A', torre:'Complicada', calor:'Regular (con humedad alta vigila hongos)', fruto:false, cosecha:110, continua:true,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'14–28 días (muy irregular)', trasplante:'Mejor por esqueje', cosechaTxt:'~110 días',
+    tips:['Por esqueje es mucho más fácil que por semilla.','No tolera raíces encharcadas sin oxígeno.','Con humedad alta vigila hongos.'] },
+  cebollin:{ cat:'Hierbas', nombre:'Cebollín', emoji:'🌱', color:'#7CC47F', torre:'Ideal', calor:'Regular', fruto:false, cosecha:65, continua:true,
+    ph:'6.0–7.0', ppm:'800–1200', germ:'7–14 días', trasplante:'25–35 días', cosechaTxt:'~65 días; corte continuo',
+    tips:['Corta las hojas a 3–4 cm y vuelven a crecer.','Raíz compacta: cabe bien en un hueco.','Tolera bien el calor moderado.'] },
+  salvia:  { cat:'Hierbas', nombre:'Salvia', emoji:'🌿', color:'#93AE9A', torre:'Buena', calor:'Regular', fruto:false, cosecha:80, continua:true,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'10–21 días', trasplante:'30–40 días', cosechaTxt:'~80 días',
+    tips:['Lenta al inicio.','Prefiere buena ventilación.','No la pongas pegada a plantas muy húmedas.'] },
+  eneldo:  { cat:'Hierbas', nombre:'Eneldo', emoji:'🌿', color:'#A0C97A', torre:'Buena', calor:'Sufre (mejor de diciembre a febrero)', fruto:false, cosecha:50, continua:false,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'7–14 días', trasplante:'14–21 días', cosechaTxt:'~50 días',
+    tips:['Se espiga rápido con calor.','Crece alto y delgado.','Resiembra seguido.'] },
+  melisa:  { cat:'Hierbas', nombre:'Melisa (toronjil)', emoji:'🌿', color:'#86C08B', torre:'Ideal', calor:'Regular', fruto:false, cosecha:60, continua:true,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'10–21 días', trasplante:'25–30 días', cosechaTxt:'~60 días; corte continuo',
+    tips:['Crece parecido a la menta, pero es menos invasiva.','Se puede propagar por esqueje.','Aguanta bien un manejo sencillo.'] },
+  stevia:  { cat:'Hierbas', nombre:'Stevia', emoji:'🌿', color:'#6DBA7A', torre:'Buena', calor:'Aguanta bien', fruto:false, cosecha:90, continua:true,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'7–14 días (la semilla germina poco)', trasplante:'Mejor por esqueje o planta', cosechaTxt:'~90 días',
+    tips:['La semilla casi no germina: compra planta o esquejes.','Corta las puntas para que ramifique.','Le gusta el calor.'] },
+  epazote: { cat:'Hierbas', nombre:'Epazote', emoji:'🌿', color:'#7AA866', torre:'Experimental', calor:'Aguanta bien', fruto:false, cosecha:60, continua:true,
+    ph:'6.0–6.5', ppm:'800–1200', germ:'7–14 días', trasplante:'20–25 días', cosechaTxt:'~60 días; corte continuo',
+    tips:['Hay poca información de cultivo hidropónico: los valores son estimados, prueba primero con un hueco.','Corta las puntas antes de que florezca.','Aguanta calor.'] },
+
+  /* ---------- Frutos (planta de fruto) ---------- */
+  tomate:  { cat:'Frutos (planta de fruto)', nombre:'Tomate cherry', emoji:'🍅', color:'#E5604D', torre:'Buena', calor:'Regular (con más de 35°C puede tirar flores)', fruto:true, cosecha:80, continua:true,
+    ph:'5.5–6.5', ppm:'1200–1800 al florear', germ:'5–10 días', trasplante:'15–20 días después de sembrar', cosechaTxt:'~80 días (aprox., depende de la variedad)',
+    tips:['Usa variedad cherry bush/patio, no de tutor largo.','Necesita calcio: sin él la punta del fruto se pudre y se pone negra (pudrición apical).','Más fósforo y potasio cuando florea.'] },
+  chile:   { cat:'Frutos (planta de fruto)', nombre:'Chile serrano/jalapeño', emoji:'🌶️', color:'#E8A33D', torre:'Buena', calor:'Aguanta bien', fruto:true, cosecha:95, continua:true,
+    ph:'5.5–6.5', ppm:'1200–1800 al florear', germ:'10–15 días (lento, paciencia).', trasplante:'25–30 días después de sembrar', cosechaTxt:'~95 días (aprox.)',
+    tips:['Tolera bien el calor de Tampico.','Es lento al inicio; no significa que esté mal.','Fórmula de floración en cuanto veas flores.'] },
+  habanero:{ cat:'Frutos (planta de fruto)', nombre:'Chile habanero', emoji:'🌶️', color:'#F08A24', torre:'Buena', calor:'Aguanta bien (le encanta)', fruto:true, cosecha:110, continua:true,
+    ph:'5.5–6.5', ppm:'1200–1800 al florear', germ:'14–28 días (muy lento)', trasplante:'40–50 días', cosechaTxt:'~110 días',
+    tips:['Muy lento al inicio: empieza temprano.','Le encanta el calor.','Usa guantes al cosechar.'] },
+  pimiento:{ cat:'Frutos (planta de fruto)', nombre:'Pimiento morrón', emoji:'🫑', color:'#4FAF4A', torre:'Complicada', calor:'Regular (con mucho calor tira las flores)', fruto:true, cosecha:100, continua:true,
+    ph:'5.5–6.5', ppm:'1200–1800 al florear', germ:'7–14 días', trasplante:'35–45 días', cosechaTxt:'~100 días',
+    tips:['Es una planta más grande que el chile serrano: ocupa más espacio.','El calcio es importante para evitar la punta negra del fruto.','Necesita soporte cuando carga fruta.'] },
+  pepino:  { cat:'Frutos (planta de fruto)', nombre:'Pepino mini', emoji:'🥒', color:'#5FA88F', torre:'Buena', calor:'Aguanta bien', fruto:true, cosecha:55, continua:true,
+    ph:'5.5–6.0', ppm:'1200–1800 al florear', germ:'3–6 días', trasplante:'10–14 días después de sembrar', cosechaTxt:'~55 días (aprox.)',
+    tips:['Necesita guía vertical: una malla o un hilo.','Al aparecer flores pasa a fórmula de floración.','Necesita más espacio que la lechuga.'] },
+  berenjena:{cat:'Frutos (planta de fruto)', nombre:'Berenjena', emoji:'🍆', color:'#8E5AA8', torre:'Complicada', calor:'Aguanta bien', fruto:true, cosecha:100, continua:true,
+    ph:'5.5–6.5', ppm:'1400–2000 al florear', germ:'7–14 días', trasplante:'35–45 días', cosechaTxt:'~100 días',
+    tips:['Planta grande y pesada: mejor en una cubeta aparte que en la torre.','Le gusta el calor.','Necesita soporte.'] },
+  calabacita:{cat:'Frutos (planta de fruto)', nombre:'Calabacita', emoji:'🥒', color:'#7DB05A', torre:'Complicada', calor:'Aguanta bien', fruto:true, cosecha:55, continua:true,
+    ph:'5.5–6.5', ppm:'1200–1800 al florear', germ:'3–7 días', trasplante:'10–14 días', cosechaTxt:'~55 días',
+    tips:['Planta muy grande: mejor en un sistema aparte.','Rinde mucho.','Con humedad alta es propensa al mildiu.'] },
+  ejote:   { cat:'Frutos (planta de fruto)', nombre:'Ejote (frijol de mata)', emoji:'🫛', color:'#6AB06A', torre:'Buena', calor:'Regular', fruto:true, cosecha:55, continua:true,
+    ph:'6.0–6.5', ppm:'800–1400', germ:'5–10 días', trasplante:'10–14 días (o siembra directa en rockwool)', cosechaTxt:'~55 días',
+    tips:['Las variedades de mata (no trepadoras) son más fáciles.','No le pongas fertilizante muy concentrado.','Cosecha seguido para que siga dando.'] },
+  chicharo:{ cat:'Frutos (planta de fruto)', nombre:'Chícharo', emoji:'🫛', color:'#8CC96B', torre:'Buena', calor:'Sufre (mejor de diciembre a febrero)', fruto:true, cosecha:65, continua:true,
+    ph:'6.0–7.0', ppm:'800–1400', germ:'7–14 días', trasplante:'10–14 días', cosechaTxt:'~65 días',
+    tips:['Le gusta el clima fresco.','Necesita guía para trepar.','Con calor produce poco.'] },
+  tomatillo:{cat:'Frutos (planta de fruto)', nombre:'Tomatillo', emoji:'🍈', color:'#A8C94F', torre:'Complicada', calor:'Aguanta bien', fruto:true, cosecha:85, continua:true,
+    ph:'5.5–6.5', ppm:'1200–1800 al florear', germ:'7–10 días', trasplante:'25–35 días', cosechaTxt:'~85 días',
+    tips:['Planta grande y ramificada.','Rinde mejor con 2 o más plantas para que se polinicen entre sí.','Aguanta calor.'] },
+  okra:    { cat:'Frutos (planta de fruto)', nombre:'Okra', emoji:'🌿', color:'#7FAE4A', torre:'Complicada', calor:'Aguanta bien (le encanta)', fruto:true, cosecha:60, continua:true,
+    ph:'6.0–6.5', ppm:'1200–1800 al florear', germ:'5–10 días', trasplante:'20–25 días', cosechaTxt:'~60 días',
+    tips:['Planta alta y grande.','Le encanta el calor.','Cosecha las vainas chicas, antes de que endurezcan.'] },
+
+  /* ---------- Fresa y bayas ---------- */
+  fresa:   { cat:'Fresa y bayas', nombre:'Fresa', emoji:'🍓', color:'#E85D8A', torre:'Ideal', calor:'Regular (sombra en las horas fuertes)', fruto:true, cosecha:90, continua:true,
+    ph:'5.5–6.2', ppm:'1200–1800 al florear', germ:'La semilla es muy lenta: es mejor partir de plántula.', trasplante:'Como plántula con raíz', cosechaTxt:'Primera fruta a los 60–90 días',
+    tips:['Prefiere un pH un poco más bajo que las hojas verdes.','Tolera más sol, pero dale sombra en las horas más fuertes.','Es sensible a la falta de calcio.'] },
+
+  /* ---------- Raíz, tallo y otras ---------- */
+  rabano:  { cat:'Raíz, tallo y otras', nombre:'Rábano', emoji:'🌱', color:'#D9567A', torre:'Buena', calor:'Regular', fruto:false, cosecha:28, continua:false,
+    ph:'5.5–6.5', ppm:'800–1200', germ:'3–5 días', trasplante:'10–12 días, o siembra directa', cosechaTxt:'25–30 días',
+    tips:['De las más rápidas.','Su bulbo es pequeño, por eso sí cabe en un hueco.','Con calor se pone picante y se espiga.'] },
+  cebollita:{cat:'Raíz, tallo y otras', nombre:'Cebolla de rabo (cebollitas verdes)', emoji:'🌱', color:'#9DCB7A', torre:'Buena', calor:'Regular', fruto:false, cosecha:60, continua:false,
+    ph:'6.0–7.0', ppm:'800–1200', germ:'7–14 días', trasplante:'25–35 días', cosechaTxt:'~60 días',
+    tips:['Se usa la parte verde y el rabo; no forma un bulbo grande.','Raíz compacta.','Aguanta calor moderado.'] },
+  apio:    { cat:'Raíz, tallo y otras', nombre:'Apio', emoji:'🥬', color:'#92C77E', torre:'Complicada', calor:'Sufre (mejor de diciembre a febrero)', fruto:false, cosecha:100, continua:false,
+    ph:'6.0–6.5', ppm:'1000–1500', germ:'10–21 días (muy lento)', trasplante:'45–60 días', cosechaTxt:'~100 días',
+    tips:['Muy lento y exigente.','Necesita mucho calcio y agua constante.','Con calor sufre.'] }
+};
+const ORDEN_DEFAULT = ['menta','menta','cilantro','cilantro','lechuga','lechuga','lechuga','lechuga','pepino','pepino','tomate','tomate','tomate','chile','chile','chile','fresa','fresa'];
+
+/* =========================================================
+   Estado de los huecos (cantidad variable)
+   ========================================================= */
+function cargarSlots(){
+  const g = jsonGet('torre-slots', null);
+  if(Array.isArray(g) && g.length >= 1 && g.length <= 40){
+    return g.map(s => ({ p:(s && PLANTAS[s.p]) ? s.p : '', f:(s && s.f) ? s.f : '' }));
+  }
+  return ORDEN_DEFAULT.map(p => ({ p, f:'' }));
+}
+let slots = cargarSlots();
+function guardarSlots(){ jsonSet('torre-slots', slots); }
+
+function estadoSlot(s){
+  if(!s.p || !PLANTAS[s.p]) return { txt:'Hueco vacío', pct:null, listo:false, falta:null };
+  const p = PLANTAS[s.p];
+  if(!s.f) return { txt:'Sin fecha de siembra', pct:null, listo:false, falta:null };
+  const dias = diasDesde(s.f);
+  if(dias < 0) return { txt:'La fecha de siembra es futura', pct:0, listo:false, falta:null };
+  if(dias < p.cosecha){
+    return { txt:`Faltan ~${p.cosecha - dias} días para cosechar · día ${dias}`, pct:Math.round(dias/p.cosecha*100), listo:false, falta:p.cosecha - dias };
+  }
+  return { txt: p.continua ? `En producción · día ${dias}` : `Lista para cosechar · día ${dias}`, pct:100, listo:true, falta:0 };
+}
+
+/* =========================================================
+   Adornos dibujados con código (enredadera, engranaje, mandala)
+   y animaciones con GSAP. Si GSAP no carga o el sistema pide
+   "reducir movimiento", todo se ve igual, sólo que quieto.
+   ========================================================= */
+const REDUCIR = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+function GS(){ return (!REDUCIR && typeof gsap !== 'undefined') ? gsap : null; }
+function intenta(fn){ try{ fn(); }catch(e){ /* una animación nunca debe romper la app */ } }
+
+const HOJA = 'M0 0 C5 -10 17 -10 22 0 C17 8 5 8 0 0Z';
+function engranajeSVG(){
+  const n = 12, R = 46, r = 38;
+  let d = '';
+  for(let i = 0; i < n; i++){
+    const a = i * 2 * Math.PI / n, w = Math.PI / n * 0.5;
+    const pts = [[a - w, r], [a - w * .6, R], [a + w * .6, R], [a + w, r]];
+    pts.forEach(([t, rr], k) => { d += (i === 0 && k === 0 ? 'M' : 'L') + (50 + rr * Math.cos(t)).toFixed(1) + ' ' + (50 + rr * Math.sin(t)).toFixed(1); });
+  }
+  return `<svg class="orn" viewBox="0 0 100 100" aria-hidden="true"><path d="${d}Z" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="50" r="14" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="50" cy="50" r="5" fill="currentColor"/></svg>`;
+}
+function mandalaSVG(n){
+  let s = '<svg viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">';
+  for(let i = 0; i < n; i++){
+    const a = i * 360 / n;
+    s += `<path transform="rotate(${a} 50 50)" d="M50 6 L50 30 M50 34 Q56 44 50 54 Q44 44 50 34Z"/>`;
+  }
+  return s + '<circle cx="50" cy="50" r="10" fill="currentColor"/><circle cx="50" cy="50" r="46"/></svg>';
+}
+function vinaTorre(alto){
+  const fin = alto - 100;
+  let d = 'M140 ' + fin, y = fin, leaves = '', i = 0;
+  while(y > 40){
+    const ny = y - 23, nx = i % 2 ? 130 : 150;
+    d += ` Q${i % 2 ? 152 : 128} ${y - 11} ${nx} ${ny}`;
+    leaves += `<path class="leaf" d="${HOJA}" transform="translate(${nx} ${ny}) rotate(${i % 2 ? -110 : -70}) scale(.7)" fill="#63D230" stroke="#10140F" stroke-width="2.4"/>`;
+    y = ny; i++;
+  }
+  return `<path class="vtrunk" d="${d}" fill="none" stroke="#63D230" stroke-width="3.5" stroke-linecap="round"/>` + leaves;
+}
+function vinaMast(){
+  const pts = [[170,230],[150,196],[184,168],[160,138],[186,108],[158,78],[176,48]];
+  let d = 'M' + pts[0].join(' '), leaves = '';
+  for(let k = 1; k < pts.length; k++){
+    const [px, py] = pts[k - 1], [x, y] = pts[k];
+    d += ` Q${k % 2 ? px - 26 : px + 26} ${(py + y) / 2} ${x} ${y}`;
+    leaves += `<path class="leaf" d="${HOJA}" transform="translate(${x} ${y}) rotate(${k % 2 ? -150 : -30})" fill="#63D230" stroke="#10140F" stroke-width="2.2"/>`;
+  }
+  let flor = '<g class="flor" transform="translate(176 40)">';
+  for(let k = 0; k < 8; k++) flor += `<ellipse cx="0" cy="-11" rx="4.5" ry="9" transform="rotate(${k * 45})" fill="#F6F5EF" stroke="#10140F" stroke-width="2"/>`;
+  flor += '<circle r="5.5" fill="#F0A31B" stroke="#10140F" stroke-width="2"/></g>';
+  return `<path class="vtrunk" d="${d}" fill="none" stroke="#10140F" stroke-width="5" stroke-linecap="round"/>` + leaves + flor;
+}
+
+let ultimaTemp = null;
+function contarTemp(el, v){
+  if(!el || ultimaTemp === v) return;
+  ultimaTemp = v;
+  const g = GS(); if(!g) return;
+  intenta(() => {
+    const o = { n: 0 };
+    g.to(o, { n: v, duration: .9, ease: 'power2.out',
+      onUpdate: () => { el.textContent = Math.round(o.n) + '°'; },
+      onComplete: () => { el.textContent = v + '°'; } });
+  });
+}
+function animarPockets(){
+  const g = GS(); if(!g) return;
+  intenta(() => g.from('#towerGraphic .pocket', { scale: 0, opacity: 0, duration: .35, ease: 'back.out(2)', stagger: .025, clearProps: 'transform,opacity' }));
+}
+function animarVina(sel){
+  const g = GS(); if(!g) return;
+  intenta(() => {
+    const t = document.querySelector(sel + ' .vtrunk');
+    if(t && t.getTotalLength){
+      const L = t.getTotalLength();
+      g.fromTo(t, { strokeDasharray: L, strokeDashoffset: L }, { strokeDashoffset: 0, duration: 1.6, ease: 'power1.inOut', clearProps: 'strokeDasharray,strokeDashoffset' });
+    }
+    g.from(sel + ' .leaf', { scale: 0, transformOrigin: '0 0', duration: .4, ease: 'back.out(2.5)', stagger: .12, delay: .3 });
+    g.from(sel + ' .flor', { scale: 0, rotation: -90, transformOrigin: '0 0', duration: .6, ease: 'back.out(2)', delay: 1.4 });
+  });
+}
+function animarTab(name){
+  const g = GS(); if(!g) return;
+  intenta(() => {
+    g.from('#tab-' + name + ' > .card, #tab-' + name + ' > .hero, #tab-' + name + ' > h3.grp, #tab-' + name + ' > details',
+      { y: 18, opacity: 0, duration: .45, ease: 'power2.out', stagger: .07, clearProps: 'transform,opacity' });
+    if(name === 'torre'){ window.__torreVisible = true; animarPockets(); animarVina('#towerGraphic'); }
+    if(name === 'hoy') g.from('#tab-hoy .pbar i', { scaleX: 0, transformOrigin: 'left center', duration: .7, ease: 'power2.out', delay: .25, clearProps: 'transform' });
+  });
+}
+
+/* =========================================================
+   Pestañas
+   ========================================================= */
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-'+name));
+  document.querySelectorAll('nav.bottom button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  window.scrollTo({top:0});
+  window.__torreVisible = false;
+  animarTab(name);
+}
+
+/* =========================================================
+   Clima de Tampico (Open-Meteo, sin llave)
+   ========================================================= */
+const LAT = 22.2331, LON = -97.8611;
+let clima = jsonGet('torre-clima', null);
+let climaManual = jsonGet('torre-clima-manual', null);
+let climaError = false;
+
+const WCODES = {0:'Despejado',1:'Mayormente despejado',2:'Parcialmente nublado',3:'Nublado',45:'Niebla',48:'Niebla',
+  51:'Llovizna',53:'Llovizna',55:'Llovizna',61:'Lluvia ligera',63:'Lluvia',65:'Lluvia fuerte',80:'Chubascos',81:'Chubascos',82:'Chubascos fuertes',95:'Tormenta',96:'Tormenta',99:'Tormenta'};
+
+async function cargarClima(){
+  try{
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+
+      '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m'+
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max'+
+      '&timezone=America%2FMexico_City&forecast_days=3';
+    const r = await fetch(url, { cache:'no-store' });
+    if(!r.ok) throw new Error('http');
+    const d = await r.json();
+    clima = { ts:Date.now(), cur:d.current, daily:d.daily };
+    jsonSet('torre-clima', clima);
+    climaError = false;
+  }catch(e){
+    climaError = true;
+  }
+  renderHoy();
+}
+
+function climaEfectivo(){
+  if(clima && clima.daily){
+    return {
+      tMax: clima.daily.temperature_2m_max[0], tMin: clima.daily.temperature_2m_min[0],
+      hum: clima.cur.relative_humidity_2m, tNow: clima.cur.temperature_2m,
+      rainP: clima.daily.precipitation_probability_max[0], uv: clima.daily.uv_index_max[0],
+      wind: clima.daily.wind_speed_10m_max[0], code: clima.cur.weather_code,
+      fuente: climaError ? 'guardado' : 'en vivo', ts: clima.ts
+    };
+  }
+  if(climaManual && climaManual.tMax != null && climaManual.hum != null){
+    return { tMax:climaManual.tMax, hum:climaManual.hum, tNow:null, tMin:null, rainP:null, uv:null, wind:null, code:null, fuente:'manual', ts:null };
+  }
+  return null;
+}
+function guardarClimaManual(){
+  const t = parseFloat($('mTemp').value), h = parseFloat($('mHum').value);
+  if(isNaN(t) || isNaN(h)) return;
+  climaManual = { tMax:t, hum:h };
+  jsonSet('torre-clima-manual', climaManual);
+  renderHoy();
+}
+
+/* =========================================================
+   Pantalla HOY
+   ========================================================= */
+function fechaBonita(){
+  return new Date().toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+}
+
+function renderHero(c){
+  const hero = $('hero');
+  if(!c){
+    hero.className = 'hero';
+    hero.innerHTML = `
+      <h2 style="font-size:18px;">Sin conexión al clima</h2>
+      <p class="note">No pude traer el clima de Tampico. Métele a mano la temperatura máxima y la humedad de hoy (de tu app del clima) y te doy las recomendaciones igual.</p>
+      <div class="manual">
+        <div><label for="mTemp">Temp. máx. (°C)</label><input type="number" id="mTemp" placeholder="34"></div>
+        <div><label for="mHum">Humedad (%)</label><input type="number" id="mHum" placeholder="75"></div>
+      </div>
+      <button class="btn small" onclick="guardarClimaManual()">Usar estos datos</button>
+      <button class="btn small ghost" onclick="cargarClima()">Reintentar conexión</button>`;
+    return;
+  }
+  hero.className = 'hero' + ((c.rainP != null && c.rainP >= 60) ? ' lluvia' : (c.tMax >= 33 ? ' calor' : ''));
+  const tempGrande = c.tNow != null ? Math.round(c.tNow) : Math.round(c.tMax);
+  const desc = c.code != null ? (WCODES[c.code] || 'Nublado') : 'Datos manuales';
+  const fuente = c.fuente === 'en vivo' ? 'Actualizado ahora' :
+                 c.fuente === 'guardado' ? 'Último clima guardado (sin conexión)' : 'Capturado a mano';
+  hero.innerHTML = `
+    <div class="orn-wrap">${engranajeSVG()}</div>
+    <div class="hero-top">
+      <div>
+        <div class="eyebrow">${esc(fechaBonita())}</div>
+        <div class="temp">${tempGrande}°</div>
+        <div class="desc">${esc(desc)} · ${esc(fuente)}</div>
+      </div>
+      <button class="refresh" onclick="cargarClima()" aria-label="Actualizar clima">🔄</button>
+    </div>
+    <div class="chips">
+      <div class="chip"><div class="v">${Math.round(c.tMax)}°</div><div class="l">Máx hoy</div></div>
+      <div class="chip"><div class="v">${Math.round(c.hum)}%</div><div class="l">Humedad</div></div>
+      <div class="chip"><div class="v">${c.rainP != null ? c.rainP + '%' : '—'}</div><div class="l">Lluvia</div></div>
+      <div class="chip"><div class="v">${c.uv != null ? Math.round(c.uv) : '—'}</div><div class="l">Índice UV</div></div>
+    </div>`;
+  contarTemp(hero.querySelector('.temp'), tempGrande);
+}
+
+function esFloracion(){
+  // Estimación: alguna planta de fruto lleva 40+ días desde la siembra
+  return slots.some(s => s.p && PLANTAS[s.p].fruto && s.f && diasDesde(s.f) >= 40);
+}
+
+function recomendaciones(c){
+  const r = [];
+  if(!c) return r;
+  // Sombra
+  let sombra;
+  if(c.tMax >= 35) sombra = 'Malla puesta de 11am a 5pm (unas 6 horas).';
+  else if(c.tMax >= 32) sombra = 'Malla de 12pm a 4pm (unas 4 horas).';
+  else if(c.tMax >= 29) sombra = 'Malla de 1pm a 3:30pm (2–3 horas).';
+  else sombra = 'Opcional; solo si el sol pega muy directo.';
+  if(c.uv != null && c.uv >= 8) sombra += ' El UV está muy alto, no te saltes la malla.';
+  r.push({ tag:'🌤️', warn:c.tMax >= 32, txt:`<b>Sombra:</b> ${sombra}` });
+  // Riego
+  r.push({ tag:'💧', txt:`<b>Riego:</b> con la bomba temprano, antes de las 7:30am. Nunca en la tarde-noche, para que las hojas no pasen la noche mojadas.` + (c.tMax >= 33 ? ' Con este calor, revisa el nivel de la cubeta por la tarde: se evapora más rápido.' : '') });
+  // Hongos
+  let hongo, det, warn = false;
+  if(c.hum >= 75){ hongo='Alto'; det='pon un ventilador cerca de la torre y revisa las hojas de abajo.'; warn = true; }
+  else if(c.hum >= 60){ hongo='Moderado'; det='vigila las hojas inferiores por manchas o moho.'; }
+  else { hongo='Bajo'; det='rutina normal.'; }
+  r.push({ tag:'🍄', warn, txt:`<b>Riesgo de hongos:</b> ${hongo}, ${det}` });
+  // Solución caliente
+  if(c.tMax >= 33){
+    r.push({ tag:'🌡️', warn:true, txt:`<b>Cubeta:</b> déjala a la sombra o con tapa blanca. Si el agua se siente tibia, la solución se calienta de más (lo ideal es 18–24°C y que no pase de 26–28°C).` });
+  }
+  // Tormenta
+  const mes = new Date().getMonth() + 1;
+  if((c.rainP != null && c.rainP >= 70) || (c.wind != null && c.wind >= 45)){
+    r.push({ tag:'⛈️', warn:true, txt:`<b>Lluvia o viento fuerte:</b> revisa que la bomba y las conexiones eléctricas estén protegidas` + ((mes >= 6 && mes <= 11) ? ' y ten lista la torre por si hay que meterla bajo techo (estamos en temporada de huracanes).' : '.') });
+  } else if(c.rainP != null && c.rainP >= 40){
+    r.push({ tag:'🌦️', txt:`<b>Posible lluvia (${c.rainP}%):</b> la solución se puede diluir; si llueve mucho, vuelve a medir ppm.` });
+  }
+  // Nutrientes
+  const flor = esFloracion();
+  r.push({ tag:'🧪', txt:`<b>Nutrientes:</b> ${flor ? 'fórmula de floración, 1200–1800 ppm (alguna de tus plantas de fruto ya lleva 40+ días; confirma si ya hay flores).' : 'fórmula vegetativa, 800–1200 ppm.'} pH 5.8–6.0.` });
+  return r;
+}
+
+function itemsChecklist(){
+  const items = [];
+  const logs = cargarLogs();
+  items.push({ id:'riego', t:`Riego con la bomba (${BOMBA_MIN} min)`, s:'Temprano en la mañana.' });
+  items.push({ id:'agua', t:'Revisar nivel y temperatura del agua', s:'Que no se haya secado ni se sienta caliente.' });
+  items.push({ id:'hojas', t:'Revisar hojas: manchas, moho o plagas', s:'Mira sobre todo las de abajo.' });
+
+  const ultPh = logs.find(l => l.tipo === 'Medición pH/EC');
+  const dPh = ultPh ? diasDesde(ultPh.fecha) : null;
+  if(dPh === null || dPh >= 2){
+    items.push({ id:'ph', t:'Medir pH y ppm', s: dPh === null ? 'Aún no tienes mediciones anotadas.' : `Última medición hace ${dPh} días (cada 2–3 días).` });
+  }
+  const iso = fechaAgua();
+  if(iso){
+    const dias = (Date.now() - new Date(iso).getTime()) / 86400000;
+    if(dias / CICLO_DIAS >= 1) items.push({ id:'cambio', t:'Cambiar el agua de la cubeta', s:`Lleva ${Math.floor(dias)} días (ciclo de ${CICLO_DIAS}).` });
+  }
+  const listas = {};
+  slots.forEach(s => { if(estadoSlot(s).listo){ listas[s.p] = (listas[s.p] || 0) + 1; } });
+  Object.keys(listas).forEach(p => items.push({ id:'cos-'+p, t:`Cosechar ${PLANTAS[p].nombre.toLowerCase()}`, s:`${listas[p]} hueco(s) ya llegaron a su tiempo estimado.` }));
+
+  const cil = slots.filter(s => s.p === 'cilantro' && s.f).map(s => diasDesde(s.f));
+  if(cil.length && Math.max(...cil) >= 28) items.push({ id:'resiembra', t:'Resembrar cilantro', s:`Tu cilantro más viejo lleva ${Math.max(...cil)} días; se espiga rápido con calor.` });
+  if(esFloracion()) items.push({ id:'flor', t:'Revisar si ya hay flores en chile, tomate, pepino o fresa', s:'Si ya florean, cambia a fórmula de floración.' });
+  return items;
+}
+
+function renderChecklist(){
+  const key = 'torre-check-' + hoyISO();
+  const hechos = jsonGet(key, []);
+  const items = itemsChecklist();
+  $('checklist').innerHTML = items.map(i => `
+    <label class="check ${hechos.includes(i.id) ? 'done' : ''}">
+      <input type="checkbox" ${hechos.includes(i.id) ? 'checked' : ''} onchange="toggleCheck('${i.id}')">
+      <div><div class="t">${esc(i.t)}</div><div class="s">${esc(i.s)}</div></div>
+    </label>`).join('');
+}
+function toggleCheck(id){
+  const key = 'torre-check-' + hoyISO();
+  let h = jsonGet(key, []);
+  h = h.includes(id) ? h.filter(x => x !== id) : h.concat(id);
+  jsonSet(key, h);
+  renderChecklist();
+}
+
+function renderProximas(){
+  const porPlanta = {};
+  slots.forEach(s => {
+    if(!s.p || !s.f) return;
+    const e = estadoSlot(s);
+    const cur = porPlanta[s.p];
+    if(!cur || e.falta < cur.falta) porPlanta[s.p] = { falta:e.falta, pct:e.pct, listo:e.listo };
+  });
+  const lista = Object.keys(porPlanta).map(p => ({ p, ...porPlanta[p] })).sort((a,b) => a.falta - b.falta);
+  if(!lista.length){
+    $('proximas').innerHTML = '<div class="empty">Ponle fecha de siembra a tus plantas (pestaña Torre) y aquí verás cuándo toca cosechar.</div>';
+    return;
+  }
+  $('proximas').innerHTML = lista.map(x => `
+    <div class="next">
+      <div class="em">${PLANTAS[x.p].emoji}</div>
+      <div class="n">${esc(PLANTAS[x.p].nombre)}
+        <small>${x.listo ? 'Ya puedes cosechar' : 'Faltan ~' + x.falta + ' días (aprox.)'}</small>
+        <div class="pbar"><i style="width:${x.pct}%; background:${PLANTAS[x.p].color}"></i></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderHoy(){
+  const c = climaEfectivo();
+  renderHero(c);
+  const recs = recomendaciones(c);
+  $('recs').innerHTML = recs.length
+    ? recs.map(r => `<div class="rec ${r.warn ? 'warn' : ''}"><div class="tag">${r.tag}</div><div>${r.txt}</div></div>`).join('')
+    : '<div class="empty">Cuando tengamos el clima de hoy te digo qué ajustar.</div>';
+  renderChecklist();
+  renderProximas();
+}
+
+/* =========================================================
+   Cubeta (ciclo del agua)
+   ========================================================= */
+let CICLO_DIAS = parseInt(lsGet('hydro-ciclo')) || 7;
+function fechaAgua(){ return lsGet('hydro-agua-fecha'); }
+
+function colorAgua(f){
+  const stops = [[0,[61,139,255]],[0.5,[80,190,140]],[0.8,[240,163,27]],[1,[180,71,43]]];
+  f = Math.max(0, Math.min(1, f));
+  for(let i = 0; i < stops.length - 1; i++){
+    const [f0,c0] = stops[i], [f1,c1] = stops[i+1];
+    if(f <= f1){
+      const t = (f - f0) / (f1 - f0);
+      const c = c0.map((v,k) => Math.round(v + (c1[k] - v) * t));
+      return `rgb(${c[0]},${c[1]},${c[2]})`;
+    }
+  }
+  return 'rgb(180,71,43)';
+}
+
+function actualizarCubeta(){
+  const pot = $('towerPot');
+  if(!pot) return;
+  const days = $('potDays'), msg = $('potMsg'), btn = $('potBtn');
+  const iso = fechaAgua();
+  if(!iso){
+    pot.style.setProperty('--agua', '#9A9C90');
+    pot.classList.remove('urgente');
+    days.textContent = 'Sin registro';
+    msg.textContent = 'Marca cuando pongas agua nueva';
+    btn.textContent = 'Agua nueva hoy';
+    return;
+  }
+  const dias = (Date.now() - new Date(iso).getTime()) / 86400000;
+  const f = dias / CICLO_DIAS;
+  pot.style.setProperty('--agua', colorAgua(f));
+  days.textContent = `Día ${Math.floor(dias) + 1} de ${CICLO_DIAS}`;
+  pot.classList.toggle('urgente', f >= 1);
+  msg.textContent = f >= 1 ? '¡Cambia el agua!' : (f >= 0.8 ? 'Pronto toca cambiarla' : 'Agua en buen estado');
+  btn.textContent = 'Ya cambié el agua';
+}
+
+function cambiarAgua(){
+  lsSet('hydro-agua-fecha', new Date().toISOString());
+  const logs = cargarLogs();
+  logs.unshift({ fecha:hoyISO(), tipo:'Cambio de solución', ph:'', ec:'', notas:'Desde la torre' });
+  guardarLogs(logs);
+  renderLogs(); actualizarCubeta(); renderHoy();
+}
+function cambiarCiclo(v){
+  CICLO_DIAS = parseInt(v) || 7;
+  lsSet('hydro-ciclo', String(CICLO_DIAS));
+  actualizarCubeta(); renderHoy();
+}
+setInterval(actualizarCubeta, 60000);
+
+/* =========================================================
+   Bomba (cronómetro de riego)
+   ========================================================= */
+let BOMBA_MIN = parseInt(lsGet('hydro-bomba-min')) || 15;
+let bombaUltimoEstado = 'idle';
+
+function estadoBomba(){
+  const fin = parseInt(lsGet('hydro-bomba-fin'));
+  if(!fin) return { estado:'idle' };
+  const rest = fin - Date.now();
+  return rest > 0 ? { estado:'running', rest } : { estado:'done' };
+}
+function fmtTiempo(ms){
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2,'0') + ':' + String(s % 60).padStart(2,'0');
+}
+function beep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25, 0.5].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880; g.gain.value = 0.15;
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.15);
+    });
+  }catch(e){}
+  if(navigator.vibrate) navigator.vibrate([200,100,200]);
+}
+function tocarBomba(){
+  const s = estadoBomba();
+  if(s.estado === 'idle'){
+    lsSet('hydro-bomba-fin', String(Date.now() + BOMBA_MIN * 60000));
+  } else if(s.estado === 'running'){
+    confirmar('¿Detener el cronómetro de la bomba?', () => { lsDel('hydro-bomba-fin'); actualizarBomba(); }, 'Sí, detener');
+    return;
+  } else {
+    lsDel('hydro-bomba-fin');
+  }
+  actualizarBomba();
+}
+function actualizarBomba(){
+  const btn = $('pumpBtn'), wrap = $('towerGraphic');
+  if(!btn || !wrap) return;
+  const label = $('pumpTime');
+  const s = estadoBomba();
+  btn.classList.toggle('running', s.estado === 'running');
+  btn.classList.toggle('done', s.estado === 'done');
+  wrap.classList.toggle('lloviendo', s.estado === 'running');
+  if(s.estado === 'running'){
+    label.textContent = fmtTiempo(s.rest);
+    btn.title = 'Bomba encendida: toca para detener el cronómetro';
+  } else if(s.estado === 'done'){
+    label.textContent = '¡Apágala!';
+    btn.title = 'Tiempo cumplido: toca para reiniciar';
+    if(bombaUltimoEstado === 'running') beep();
+  } else {
+    label.textContent = BOMBA_MIN + ' min';
+    btn.title = 'Toca para iniciar el riego (' + BOMBA_MIN + ' min)';
+  }
+  bombaUltimoEstado = s.estado;
+}
+function cambiarBombaMin(v){
+  BOMBA_MIN = parseInt(v) || 15;
+  lsSet('hydro-bomba-min', String(BOMBA_MIN));
+  actualizarBomba(); renderChecklist();
+}
+setInterval(actualizarBomba, 1000);
+
+function gotasHTML(){
+  return [-36,-22,-9,9,22,36].map((x,i) =>
+    `<div class="drop" style="left:calc(50% + ${x}px); animation-delay:${(i*0.2).toFixed(1)}s"></div>`).join('');
+}
+
+/* =========================================================
+   Dibujo de la torre
+   ========================================================= */
+function renderTower(){
+  const wrap = $('towerGraphic');
+  const filas = Math.ceil(slots.length / 2);
+  const alto = 104 + filas * 46 + 26;
+  wrap.style.height = alto + 'px';
+  wrap.style.setProperty('--caida', (alto - 150) + 'px');
+
+  let h = `<div class="tower-sun">${mandalaSVG(16)}</div><div class="tower-cap"></div><div class="tower-trunk"></div><svg class="tower-vine" viewBox="0 0 280 ${alto}" aria-hidden="true">${vinaTorre(alto)}</svg>${gotasHTML()}`;
+  slots.forEach((s,i) => {
+    const fila = Math.floor(i/2), lado = i % 2 === 0 ? 'l' : 'r';
+    const p = plantaDe(s), e = estadoSlot(s);
+    h += `<button class="pocket ${lado} ${e.listo ? 'listo' : ''} ${s.p ? (s.f ? '' : 'sin-fecha') : 'vacio'}"
+            style="bottom:${104 + fila*46}px; --pc:${p.color}"
+            onclick="abrirSlot(${i})" aria-label="Hueco ${i+1}: ${esc(p.nombre)}. ${esc(e.txt)}">
+            <span>${p.emoji}</span>${e.listo ? '<i class="ready-dot"></i>' : ''}</button>`;
+  });
+  h += `<div class="tower-overflow"></div>
+    <div class="tower-pot" id="towerPot">
+      <div class="pot-water"></div>
+      <div class="pot-plate">
+        <div class="pot-days" id="potDays">—</div>
+        <div class="pot-msg" id="potMsg"></div>
+        <button class="pot-btn" id="potBtn" onclick="cambiarAgua()">Ya cambié el agua</button>
+      </div>
+    </div>
+    <button class="tower-pump" id="pumpBtn" onclick="tocarBomba()" aria-label="Cronómetro de la bomba de agua">
+      <span class="pump-time" id="pumpTime"></span>
+      <span class="pump-pipe"></span>
+      <span class="pump-body"><span class="pump-impeller"></span></span>
+    </button>`;
+  wrap.innerHTML = h;
+  actualizarCubeta();
+  actualizarBomba();
+
+  const cuenta = {}; let vacios = 0;
+  slots.forEach(s => { if(s.p) cuenta[s.p] = (cuenta[s.p] || 0) + 1; else vacios++; });
+  $('legend').innerHTML = Object.keys(PLANTAS).filter(p => cuenta[p])
+    .map(p => `<span><i style="background:${PLANTAS[p].color}"></i>${esc(PLANTAS[p].nombre)} · ${cuenta[p]}</span>`).join('')
+    + (vacios ? `<span><i style="background:#9A9C90"></i>Vacíos · ${vacios}</span>` : '');
+  $('nHuecos').textContent = slots.length;
+  $('eyebrow').textContent = 'Torre vertical · ' + slots.length + ' huecos · Tampico';
+  if(window.__torreVisible) animarPockets();
+}
+
+function cambiarHuecos(delta){
+  const n = slots.length + delta;
+  if(delta === 0) return;
+  if(n < 1 || n > 40){
+    avisar(n < 1 ? 'La torre necesita al menos 1 hueco.' : 'El máximo son 40 huecos.');
+    return;
+  }
+  if(delta < 0){
+    const quitar = slots.slice(n);
+    if(quitar.some(s => s.p)){
+      confirmar('Se van a quitar ' + (-delta) + ' hueco(s) de arriba que tienen planta. ¿Seguro?',
+        () => { slots = slots.slice(0, n); refrescarTodo(); }, 'Sí, quitar');
+      return;
+    }
+    slots = slots.slice(0, n);
+  } else {
+    for(let i = 0; i < delta; i++) slots.push({ p:'', f:'' });
+  }
+  refrescarTodo();
+}
+function fijarHuecos(){
+  const v = parseInt($('huecosExacto').value);
+  if(isNaN(v) || v < 1 || v > 40){ avisar('Escribe una cantidad entre 1 y 40.'); return; }
+  $('huecosExacto').value = '';
+  cambiarHuecos(v - slots.length);
+}
+
+/* =========================================================
+   Hoja para editar un hueco
+   ========================================================= */
+let slotActual = null;
+function opcionesPlantas(sel){
+  let o = `<option value="" ${!sel ? 'selected' : ''}>＋ Hueco vacío</option>`;
+  CATS.forEach(cat => {
+    const ids = Object.keys(PLANTAS).filter(id => PLANTAS[id].cat === cat);
+    if(!ids.length) return;
+    o += `<optgroup label="${esc(cat)}">` + ids.map(id =>
+      `<option value="${id}" ${id === sel ? 'selected' : ''}>${PLANTAS[id].emoji} ${esc(PLANTAS[id].nombre)}</option>`).join('') + '</optgroup>';
+  });
+  return o;
+}
+function avisoPlanta(id){
+  if(!id || !PLANTAS[id]) return 'Hueco vacío: no cuenta para cosechas ni recordatorios.';
+  const p = PLANTAS[id];
+  return `En torre: <b>${esc(p.torre)}</b> · Calor de Tampico: <b>${esc(p.calor)}</b>. ${esc(TORRE_TXT[p.torre])}.`;
+}
+function onPlantaChange(){
+  const id = $('sPlanta').value;
+  $('sAviso').innerHTML = avisoPlanta(id);
+  const w = $('sFoto');
+  if(w){ w.dataset.id = id; w.dataset.ok = ''; w.innerHTML = ''; if(id) cargarFoto(w); }
+}
+
+function abrirSlot(i){
+  slotActual = i;
+  const s = slots[i], p = plantaDe(s), e = estadoSlot(s);
+  $('sheetBody').innerHTML = `
+    <div class="sheet-title"><span style="font-size:28px">${p.emoji}</span> Hueco ${i+1}</div>
+    <div class="note" style="margin:0 0 6px;">${esc(e.txt)}</div>
+    ${e.pct != null ? `<div class="pbar"><i style="width:${e.pct}%; background:${p.color}"></i></div>` : ''}
+    <div class="foto-wrap" id="sFoto" data-id="${esc(s.p)}"></div>
+    <label for="sPlanta">Planta</label>
+    <select id="sPlanta" onchange="onPlantaChange()">${opcionesPlantas(s.p)}</select>
+    <div class="aviso" id="sAviso">${avisoPlanta(s.p)}</div>
+    <label for="sFecha">Fecha de siembra</label>
+    <input type="date" id="sFecha" value="${esc(s.f)}" max="${hoyISO()}">
+    <label class="chk"><input type="checkbox" id="sTodas"> Aplicar esta fecha a todos los huecos con esta planta</label>
+    <button class="btn" onclick="guardarSlot()">Guardar</button>
+    <div class="row2">
+      <button class="btn ghost small" onclick="cosecharSlot()">🧺 Registré cosecha</button>
+      <button class="btn ghost small" onclick="resembrarSlot()">🌱 Resembré hoy</button>
+    </div>
+    <button class="btn ghost small" onclick="cerrarSlot()">Cerrar</button>`;
+  abrirHoja();
+  if(s.p) cargarFoto($('sFoto'));
+}
+function cerrarSlot(){
+  $('sheetBg').classList.remove('open');
+  $('sheet').classList.remove('open');
+  slotActual = null;
+}
+/* Cuadros de confirmación propios: window.confirm/alert pueden estar bloqueados
+   en algunos visores y navegadores, y entonces el botón "no hace nada". */
+let confirmCb = null;
+function abrirHoja(){
+  $('sheetBg').classList.add('open');
+  $('sheet').classList.add('open');
+}
+function confirmar(msg, ok, okTxt){
+  confirmCb = ok;
+  $('sheetBody').innerHTML = `
+    <div class="sheet-title">¿Seguro?</div>
+    <p style="margin:0 0 4px; font-size:14px;">${esc(msg)}</p>
+    <button class="btn" onclick="confirmarSi()">${esc(okTxt || 'Sí')}</button>
+    <button class="btn ghost small" onclick="cerrarSlot()">Cancelar</button>`;
+  abrirHoja();
+}
+function confirmarSi(){
+  const f = confirmCb; confirmCb = null;
+  cerrarSlot();
+  if(f) f();
+}
+function avisar(msg){
+  confirmCb = null;
+  $('sheetBody').innerHTML = `
+    <p style="margin:0 0 4px; font-size:14px;">${esc(msg)}</p>
+    <button class="btn" onclick="cerrarSlot()">Entendido</button>`;
+  abrirHoja();
+}
+
+/* ---------- Fotos desde Wikipedia (se piden desde tu navegador) ---------- */
+const WIKI = {
+  lechuga:['Lactuca sativa'], espinaca:['Spinacia oleracea'], acelga:['Acelga','en:Chard'], kale:['Col rizada','en:Kale'],
+  rucula:['Eruca vesicaria','en:Eruca vesicaria'], pakchoi:['Brassica rapa subsp. chinensis','en:Bok choy'], mostaza:['Brassica juncea','en:Brassica juncea'], berro:['Nasturtium officinale'],
+  albahaca:['Ocimum basilicum'], cilantro:['Coriandrum sativum'], menta:['Mentha spicata','Mentha'], perejil:['Petroselinum crispum'],
+  oregano:['Origanum vulgare'], tomillo:['Thymus vulgaris'], romero:['Rosmarinus officinalis','Salvia rosmarinus'], cebollin:['Allium schoenoprasum'],
+  salvia:['Salvia officinalis'], eneldo:['Anethum graveolens'], melisa:['Melissa officinalis'], stevia:['Stevia rebaudiana'],
+  epazote:['Dysphania ambrosioides','Chenopodium ambrosioides'],
+  tomate:['Solanum lycopersicum var. cerasiforme','Solanum lycopersicum'], chile:['Capsicum annuum'], habanero:['Capsicum chinense'], pimiento:['Pimiento','Capsicum annuum'],
+  pepino:['Cucumis sativus'], berenjena:['Solanum melongena'], calabacita:['Cucurbita pepo'], ejote:['Phaseolus vulgaris'],
+  chicharo:['Pisum sativum'], tomatillo:['Physalis philadelphica','Physalis ixocarpa'], okra:['Abelmoschus esculentus'],
+  fresa:['Fragaria × ananassa','Fragaria x ananassa','Fresa'],
+  rabano:['Raphanus sativus'], cebollita:['Allium fistulosum'], apio:['Apium graveolens']
+};
+async function fotoDeWikipedia(id){
+  const cache = jsonGet('torre-foto-' + id, null);
+  if(cache && cache.src) return cache;
+  const base = WIKI[id] || [];
+  // primero Wikipedia en español; si no hay foto, los mismos nombres en inglés
+  const cands = base.concat(base.filter(c => !c.startsWith('en:')).map(c => 'en:' + c));
+  for(const c of cands){
+    const en = c.startsWith('en:');
+    const titulo = en ? c.slice(3) : c;
+    try{
+      const url = 'https://' + (en ? 'en' : 'es') + '.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(titulo.replace(/ /g, '_'));
+      const r = await fetch(url, { headers:{ 'Accept':'application/json' } });
+      if(!r.ok) continue;
+      const d = await r.json();
+      if(d.type !== 'standard' || !d.thumbnail || !d.thumbnail.source) continue;
+      const res = { src:d.thumbnail.source, page:(d.content_urls && d.content_urls.desktop) ? d.content_urls.desktop.page : '' };
+      jsonSet('torre-foto-' + id, res);
+      return res;
+    }catch(e){ /* sin conexión: probamos con el siguiente nombre */ }
+  }
+  return null;
+}
+async function cargarFoto(wrap){
+  if(!wrap) return;
+  const id = wrap.dataset.id;
+  if(!id || !PLANTAS[id] || wrap.dataset.ok === id) return;
+  wrap.dataset.ok = id;
+  wrap.innerHTML = '<div class="foto-ph">Buscando foto…</div>';
+  const f = await fotoDeWikipedia(id);
+  if(wrap.dataset.id !== id) return;          // cambió de planta mientras cargaba
+  if(!f){ wrap.dataset.ok = ''; wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<img class="foto" src="${esc(f.src)}" alt="Foto de ${esc(PLANTAS[id].nombre)}" loading="lazy" onerror="this.parentNode.innerHTML=''">`
+    + (f.page ? `<a class="foto-cred" href="${esc(f.page)}" target="_blank" rel="noopener">Foto: Wikipedia</a>` : '');
+}
+
+function refrescarTodo(){ guardarSlots(); renderTower(); renderHoy(); }
+function guardarSlot(){
+  if(slotActual === null) return;
+  const planta = $('sPlanta').value, fecha = planta ? ($('sFecha').value || '') : '';
+  slots[slotActual].p = planta;
+  slots[slotActual].f = fecha;
+  if(planta && $('sTodas').checked) slots.forEach(s => { if(s.p === planta) s.f = fecha; });
+  refrescarTodo(); cerrarSlot();
+}
+function cosecharSlot(){
+  if(slotActual === null || !slots[slotActual].p) return;
+  const p = PLANTAS[slots[slotActual].p];
+  const logs = cargarLogs();
+  logs.unshift({ fecha:hoyISO(), tipo:'Poda / cosecha', ph:'', ec:'', notas:`${p.nombre} (hueco ${slotActual+1})` });
+  guardarLogs(logs); renderLogs(); cerrarSlot();
+}
+function resembrarSlot(){
+  if(slotActual === null || !slots[slotActual].p) return;
+  slots[slotActual].f = hoyISO();
+  const p = PLANTAS[slots[slotActual].p];
+  const logs = cargarLogs();
+  logs.unshift({ fecha:hoyISO(), tipo:'Otro', ph:'', ec:'', notas:`Resiembra de ${p.nombre} (hueco ${slotActual+1})` });
+  guardarLogs(logs); renderLogs();
+  refrescarTodo(); cerrarSlot();
+}
+
+/* =========================================================
+   Fichas de plantas
+   ========================================================= */
+function fichaHTML(id){
+  const p = PLANTAS[id];
+  return `<details class="planta">
+    <summary><span class="em">${p.emoji}</span><span class="nm">${esc(p.nombre)}</span><span class="tbadge t-${p.torre}">${esc(p.torre)}</span><span class="sw" style="background:${p.color}"></span></summary>
+    <div class="body">
+      <div class="foto-wrap" data-id="${id}"></div>
+      <div class="kv">
+        <div class="k">En la torre</div><div class="v">${esc(TORRE_TXT[p.torre])}</div>
+        <div class="k">Calor de Tampico</div><div class="v">${esc(p.calor)}</div>
+        <div class="k">Nutrientes</div><div class="v">${p.fruto ? 'Grupo fruto (sube a floración)' : 'Grupo hoja / hierba'}</div>
+        <div class="k">pH ideal</div><div class="v">${esc(p.ph)}</div>
+        <div class="k">ppm</div><div class="v">${esc(p.ppm)}</div>
+        <div class="k">Germina</div><div class="v">${esc(p.germ)}</div>
+        <div class="k">Trasplante</div><div class="v">${esc(p.trasplante)}</div>
+        <div class="k">Cosecha</div><div class="v">${esc(p.cosechaTxt)}</div>
+      </div>
+      <ul class="tips">${p.tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div></details>`;
+}
+function renderFichas(){
+  const inp = $('busca');
+  const q = inp ? norm(inp.value.trim()) : '';
+  let total = 0, html = '';
+  CATS.forEach(cat => {
+    const ids = Object.keys(PLANTAS).filter(id => PLANTAS[id].cat === cat && (!q || norm(PLANTAS[id].nombre).includes(q)));
+    if(!ids.length) return;
+    total += ids.length;
+    html += `<h3 class="grp">${esc(cat)}<span>${ids.length}</span></h3>` + ids.map(fichaHTML).join('');
+  });
+  $('fichas').innerHTML = html || '<div class="card"><div class="empty">No encontré esa planta.</div></div>';
+  $('fichasConteo').textContent = q ? `${total} resultado(s)` : `${Object.keys(PLANTAS).length} plantas en la guía`;
+}
+
+/* =========================================================
+   Bitácora
+   ========================================================= */
+function cargarLogs(){ return jsonGet('hydro-log', []); }
+function guardarLogs(l){ jsonSet('hydro-log', l); }
+
+function guardarLog(){
+  const fecha = $('logDate').value || hoyISO();
+  const tipo = $('logType').value;
+  if(tipo === 'Cambio de solución'){
+    lsSet('hydro-agua-fecha', new Date(fecha + 'T12:00:00').toISOString());
+    actualizarCubeta();
+  }
+  const logs = cargarLogs();
+  logs.unshift({ fecha, tipo, ph:$('logPh').value, ec:$('logEc').value, notas:$('logNotes').value });
+  guardarLogs(logs);
+  $('logPh').value = ''; $('logEc').value = ''; $('logNotes').value = '';
+  renderLogs(); renderHoy();
+}
+function renderLogs(){
+  const logs = cargarLogs();
+  $('logList').innerHTML = logs.length ? logs.map(l => `
+    <div class="log">
+      <div>
+        <span class="badge">${esc(l.tipo)}</span>
+        ${l.ph ? `<span class="mono" style="margin-left:6px;">pH ${esc(l.ph)}</span>` : ''}
+        ${l.ec ? `<span class="mono" style="margin-left:6px;">${esc(l.ec)} ppm</span>` : ''}
+        ${l.notas ? `<div style="margin-top:4px; color:var(--dim);">${esc(l.notas)}</div>` : ''}
+      </div>
+      <div class="mono" style="color:var(--dim); font-size:12px; white-space:nowrap;">${esc(l.fecha)}</div>
+    </div>`).join('') : '<div class="empty">Aún no hay registros.</div>';
+}
+function borrarHistorial(){
+  confirmar('¿Borrar todo el historial de la bitácora? No se puede deshacer.',
+    () => { guardarLogs([]); renderLogs(); renderHoy(); }, 'Sí, borrar');
+}
+
+/* Respaldo */
+function descargarRespaldo(){
+  const data = {};
+  try{
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k.startsWith('hydro-') || k.startsWith('torre-')){
+        if(k === 'hydro-apikey' || k.startsWith('torre-foto-')) continue;          // nunca exportamos la llave
+        data[k] = localStorage.getItem(k);
+      }
+    }
+  }catch(e){}
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'respaldo-torre-' + hoyISO() + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function restaurarRespaldo(input){
+  const f = input.files[0];
+  if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const data = JSON.parse(rd.result);
+      Object.keys(data).forEach(k => { if((k.startsWith('hydro-') || k.startsWith('torre-')) && k !== 'hydro-apikey') lsSet(k, data[k]); });
+      location.reload();
+    }catch(e){ avisar('Ese archivo no parece un respaldo válido.'); }
+  };
+  rd.readAsText(f);
+}
+
+/* =========================================================
+   IA opcional (tu propia llave)
+   ========================================================= */
+async function preguntarIA(){
+  const key = $('apiKey').value.trim();
+  const pregunta = $('aiQuestion').value.trim();
+  const box = $('aiAnswer');
+  if(!key){ box.textContent = 'Falta tu API key.'; return; }
+  if(!pregunta){ box.textContent = 'Escribe una pregunta.'; return; }
+  lsSet('hydro-apikey', key);
+
+  const resumen = {};
+  slots.forEach(s => {
+    if(!s.p) return;
+    const n = PLANTAS[s.p].nombre;
+    const d = s.f ? `${diasDesde(s.f)} días` : 'sin fecha';
+    (resumen[n] = resumen[n] || []).push(d);
+  });
+  const plantasTxt = Object.keys(resumen).map(n => `${n}: ${resumen[n].length} huecos (edades: ${[...new Set(resumen[n])].join(', ')})`).join('; ');
+  const c = climaEfectivo();
+  const climaTxt = c ? `Clima hoy en Tampico: máx ${c.tMax}°C, humedad ${c.hum}%` + (c.rainP != null ? `, lluvia ${c.rainP}%` : '') + (c.uv != null ? `, UV ${c.uv}` : '') + '.' : 'Sin datos de clima.';
+  const iso = fechaAgua();
+  const aguaTxt = iso ? `El agua de la cubeta lleva ${Math.floor((Date.now() - new Date(iso).getTime())/86400000)} días (ciclo de ${CICLO_DIAS}).` : '';
+
+  box.textContent = 'Pensando…';
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-5-5',
+        max_tokens:600,
+        system:'Eres un guía de hidroponía para un principiante en Tampico, Tamaulipas (calor y humedad altos). Responde en español, claro, corto y práctico. No inventes dosis exactas de fertilizante; si no estás seguro, dilo.',
+        messages:[{ role:'user', content:`Mi torre vertical hidropónica de ${slots.length} huecos: ${plantasTxt}. ${climaTxt} ${aguaTxt}\n\nPregunta: ${pregunta}` }]
+      })
+    });
+    const data = await res.json();
+    box.textContent = (data.content && data.content[0]) ? data.content[0].text : 'Error: ' + (data.error ? data.error.message : 'respuesta inesperada');
+  }catch(e){
+    box.textContent = 'No se pudo contactar a la API (revisa tu llave o tu conexión a internet).';
+  }
+}
+
+/* =========================================================
+   Arranque
+   ========================================================= */
+(function init(){
+  const h = new Date().getHours();
+  $('saludo').textContent = (h < 12 ? 'Buenos días' : (h < 19 ? 'Buenas tardes' : 'Buenas noches')) + ' · guía de cultivo';
+  $('mastVine').innerHTML = vinaMast();
+  $('logDate').value = hoyISO();
+  $('cicloSelect').value = String(CICLO_DIAS);
+  $('bombaSelect').value = String(BOMBA_MIN);
+  const k = lsGet('hydro-apikey'); if(k) $('apiKey').value = k;
+  renderTower(); renderFichas(); renderLogs(); renderHoy();
+  $('fichas').addEventListener('toggle', e => {
+    const d = e.target;
+    if(d.open && d.classList && d.classList.contains('planta')) cargarFoto(d.querySelector('.foto-wrap'));
+  }, true);
+  if('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  cargarClima();
+  animarVina('#mastVine'.replace('#mastVine', '.mast'));
+  animarTab('hoy');
+})();
+</script>
+</body>
+</html>

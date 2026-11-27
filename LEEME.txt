@@ -1,0 +1,12 @@
+MI TORRE - archivos para subir a GitHub
+=======================================
+index.html            -> estructura y lógica de la app
+style.css             -> TODO el diseño (colores arriba, en :root). Edita aquí para cambiar el look
+manifest.webmanifest  -> nombre e ícono al instalar la app
+sw.js                 -> modo sin internet y actualizaciones
+icons/                -> íconos de la app
+
+Subir: crea un repo en GitHub, sube TODO esto en la raíz (sin la carpeta mi-torre-github),
+y activa Settings > Pages > rama main > / (root).
+
+Si cambias algo y no se refleja en la app instalada, cambia torre-v1 por torre-v2 en sw.js.
