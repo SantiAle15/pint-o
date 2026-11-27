@@ -269,3 +269,46 @@ footer{text-align:center; font-family:var(--f-mono); font-size:10.5px; color:var
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none !important; transition:none !important;}
 }
+
+
+/* =====================================================================
+   CAPA PREHISPÁNICA (inspirada en bordado otomí y arquitectura mesoamericana)
+   Patrones: pirámide escalonada y greca. Se pintan con data-URI; aquí puedes
+   cambiar tamaños (background-size) o quitarlos borrando estas reglas.
+   ===================================================================== */
+:root{
+  --turq:#12A5A0; --magenta:#D6336C;
+  --pir-ink:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2728%27%20height=%2712%27%20viewBox=%270%200%2028%2012%27%3E%3Cpath%20d=%27M0%2012V9H3V6H6V3H9V0H13V3H16V6H19V9H22V12Z%27%20fill=%27%2310140F%27/%3E%3Cpath%20d=%27M23.5%2012L26%208L28.5%2012Z%27%20fill=%27%2310140F%27/%3E%3C/svg%3E"); --pir-lima:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2728%27%20height=%2712%27%20viewBox=%270%200%2028%2012%27%3E%3Cpath%20d=%27M0%2012V9H3V6H6V3H9V0H13V3H16V6H19V9H22V12Z%27%20fill=%27%2363D230%27/%3E%3Cpath%20d=%27M23.5%2012L26%208L28.5%2012Z%27%20fill=%27%2363D230%27/%3E%3C/svg%3E"); --pir-amber:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2728%27%20height=%2712%27%20viewBox=%270%200%2028%2012%27%3E%3Cpath%20d=%27M0%2012V9H3V6H6V3H9V0H13V3H16V6H19V9H22V12Z%27%20fill=%27%23F0A31B%27/%3E%3Cpath%20d=%27M23.5%2012L26%208L28.5%2012Z%27%20fill=%27%23F0A31B%27/%3E%3C/svg%3E");
+  --greca-ink:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2732%27%20height=%2716%27%20viewBox=%270%200%2032%2016%27%3E%3Cpath%20d=%27M0%2015H4V3H20V12H10V8H14V7H8V15H32%27%20fill=%27none%27%20stroke=%27%2310140F%27%20stroke-width=%272.6%27%20stroke-linejoin=%27miter%27/%3E%3Cpath%20d=%27M24%203H32%27%20stroke=%27%2310140F%27%20stroke-width=%272.6%27/%3E%3C/svg%3E"); --greca-turq:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2732%27%20height=%2716%27%20viewBox=%270%200%2032%2016%27%3E%3Cpath%20d=%27M0%2015H4V3H20V12H10V8H14V7H8V15H32%27%20fill=%27none%27%20stroke=%27%2312A5A0%27%20stroke-width=%272.6%27%20stroke-linejoin=%27miter%27/%3E%3Cpath%20d=%27M24%203H32%27%20stroke=%27%2312A5A0%27%20stroke-width=%272.6%27/%3E%3C/svg%3E");
+  --rombos:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%2726%27%20height=%2726%27%20viewBox=%270%200%2026%2026%27%3E%3Cpath%20d=%27M13%202L24%2013L13%2024L2%2013Z%27%20fill=%27none%27%20stroke=%27%2312A5A0%27%20stroke-width=%272.4%27/%3E%3Cpath%20d=%27M13%207L19%2013L13%2019L7%2013Z%27%20fill=%27%23F0A31B%27/%3E%3Ccircle%20cx=%2713%27%20cy=%2713%27%20r=%272%27%20fill=%27%2310140F%27/%3E%3C/svg%3E");
+}
+/* Cabecera: título con relieve 3D de cartel y banda de greca */
+.mast-title{perspective:700px; transform-style:preserve-3d;}
+.mast-title span{will-change:transform;}
+.mast-title span:first-child{text-shadow:2px 2px 0 var(--lima),4px 4px 0 var(--lima),6px 6px 0 var(--ink);}
+.mast-title span:last-child{text-shadow:2px 2px 0 var(--amber),4px 4px 0 var(--amber),6px 6px 0 var(--ink);}
+.mast-sub{border-bottom:none; padding-bottom:12px;}
+.mast-band{position:relative; z-index:1; height:16px; margin:0 0 2px; background:var(--greca-ink) repeat-x left center/32px 16px;}
+.mast-band::after{content:''; position:absolute; left:0; right:0; bottom:-8px; height:6px; background:var(--pir-lima) repeat-x left bottom/21px 9px;}
+.mast-top .stamp{box-shadow:3px 3px 0 var(--ink); background:var(--amber);}
+/* Barras de título de cada panel con fleco de pirámides */
+.card > h2:first-child{position:relative; padding-bottom:13px; margin-bottom:20px;}
+.card > h2:first-child::after{content:''; position:absolute; left:0; right:0; bottom:-9px; height:9px; background:var(--pir-ink) repeat-x left top/21px 9px;}
+.card > h2:first-child::before{background:var(--amber); transform:rotate(45deg);}
+h3.grp::before{content:''; width:12px; height:12px; flex-shrink:0; background:var(--turq); border:2px solid var(--ink); transform:rotate(45deg); margin-right:2px;}
+.hero{transform-style:preserve-3d; will-change:transform;}
+/* Navegación y hoja con frisos */
+nav.bottom{border-top:3px solid var(--ink);}
+nav.bottom::before{content:''; position:absolute; left:0; right:0; top:-12px; height:9px; background:var(--pir-ink) repeat-x left top/21px 9px;}
+.sheet{border-top:none; position:fixed;}
+.sheet::before{content:''; position:absolute; left:-2px; right:-2px; top:-12px; height:12px; background:var(--lima) var(--pir-ink) repeat-x left bottom/28px 12px; border-top:6px solid var(--lima); box-sizing:content-box;}
+/* Torre: tronco con rombos, sol mesoamericano que se mece en 3D */
+.tower-trunk{background:var(--rombos) center top/26px 26px repeat-y, var(--ink);}
+.tower-sun{background:none; border:none; border-radius:0; overflow:visible; animation:none; width:84px; height:84px; top:-4px; right:-6px; perspective:500px;}
+.tower-sun svg{animation:spin 80s linear infinite; filter:drop-shadow(3px 3px 0 var(--ink));}
+.tower-pot::before{content:''; position:absolute; left:0; right:0; top:0; height:9px; background:var(--pir-lima) repeat-x center top/21px 9px; z-index:2;}
+.pot-water{margin-top:0;}
+.mast-vine{overflow:visible;}
+@media (prefers-reduced-motion: reduce){ .tower-sun svg,.orn-wrap{animation:none !important;} }
+.sheet:not(.open){visibility:hidden; transition:transform .25s, visibility 0s .25s;}
+.mast-title{margin-bottom:16px;}
