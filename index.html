@@ -9,9 +9,9 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Mi Torre">
+<meta name="apple-mobile-web-app-title" content="Pint'o">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Mi Torre — Guía de cultivo</title>
+<title>Pint'o — Guía de cultivo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -21,7 +21,7 @@
 <header class="mast">
   <svg class="mast-vine" id="mastVine" viewBox="0 0 200 230" preserveAspectRatio="xMaxYMax meet" aria-hidden="true"></svg>
   <div class="mast-top"><span id="eyebrow">Torre vertical · Tampico</span><span class="stamp">100% sol</span></div>
-  <h1 class="mast-title"><span>Mi</span><span>Torre</span></h1>
+  <h1 class="mast-title"><span>Pint'o</span></h1>
   <p class="mast-sub" id="saludo">Hola</p>
   <div class="mast-band" aria-hidden="true"></div>
 </header>
@@ -502,7 +502,6 @@ function ambiente3D(){
   intenta(() => {
     g.to('.tower-sun', { rotationY: 32, transformPerspective: 500, duration: 3.4, ease: 'sine.inOut', yoyo: true, repeat: -1 });
     g.to('.mast-title span:first-child', { rotationX: 6, rotationY: -8, transformPerspective: 700, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-    g.to('.mast-title span:last-child', { rotationX: -5, rotationY: 7, transformPerspective: 700, duration: 3.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
     g.to('.mast-vine .ave', { rotation: 5, transformOrigin: '50% 100%', duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   });
 }
