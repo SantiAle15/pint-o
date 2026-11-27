@@ -23,6 +23,7 @@
   <div class="mast-top"><span id="eyebrow">Torre vertical · Tampico</span><span class="stamp">100% sol</span></div>
   <h1 class="mast-title"><span>Mi</span><span>Torre</span></h1>
   <p class="mast-sub" id="saludo">Hola</p>
+  <div class="mast-band" aria-hidden="true"></div>
 </header>
 
 <main>
@@ -449,12 +450,62 @@ function vinaMast(){
     d += ` Q${k % 2 ? px - 26 : px + 26} ${(py + y) / 2} ${x} ${y}`;
     leaves += `<path class="leaf" d="${HOJA}" transform="translate(${x} ${y}) rotate(${k % 2 ? -150 : -30})" fill="#63D230" stroke="#10140F" stroke-width="2.2"/>`;
   }
-  let flor = '<g class="flor" transform="translate(176 40)">';
-  for(let k = 0; k < 8; k++) flor += `<ellipse cx="0" cy="-11" rx="4.5" ry="9" transform="rotate(${k * 45})" fill="#F6F5EF" stroke="#10140F" stroke-width="2"/>`;
-  flor += '<circle r="5.5" fill="#F0A31B" stroke="#10140F" stroke-width="2"/></g>';
+  leaves += aveOtomi(118, 150, .9);
+  const flor = florOtomi(176, 40);
   return `<path class="vtrunk" d="${d}" fill="none" stroke="#10140F" stroke-width="5" stroke-linecap="round"/>` + leaves + flor;
 }
 
+/* Motivos de inspiración otomí (bordado de Tenango): simetría, colores vivos, aves y flores estilizadas */
+function florOtomi(x, y){
+  const col = ['#D6336C', '#F0A31B'];
+  let s = `<g class="flor" transform="translate(${x} ${y})">`;
+  for(let k = 0; k < 8; k++) s += `<path d="M0 -6 C-7 -14 -5 -23 0 -26 C5 -23 7 -14 0 -6Z" transform="rotate(${k * 45})" fill="${col[k % 2]}" stroke="#10140F" stroke-width="2"/>`;
+  s += '<circle r="8" fill="#F6F5EF" stroke="#10140F" stroke-width="2"/><circle r="4" fill="#12A5A0" stroke="#10140F" stroke-width="1.6"/>';
+  for(let k = 0; k < 8; k++) s += `<circle cx="0" cy="-17" r="1.5" fill="#10140F" transform="rotate(${k * 45 + 22})"/>`;
+  return s + '</g>';
+}
+function aveOtomi(x, y, e){
+  return `<g class="ave" transform="translate(${x} ${y}) scale(${e})" stroke="#10140F" stroke-width="2" stroke-linejoin="round">
+    <path d="M6 22 L-10 14 M6 24 L-12 24 M7 26 L-10 34" fill="none" stroke-linecap="round" stroke-width="3"/>
+    <path d="M8 14 L-6 6 L-2 18Z" fill="#F0A31B"/><path d="M8 18 L-8 18 L0 28Z" fill="#12A5A0"/>
+    <ellipse cx="16" cy="20" rx="14" ry="10" fill="#D6336C"/>
+    <path d="M6 20 C10 10 24 10 28 18 C22 26 10 26 6 20Z" fill="#12A5A0"/>
+    <circle cx="14" cy="19" r="1.7" fill="#F6F5EF" stroke="none"/><circle cx="19" cy="19" r="1.7" fill="#F6F5EF" stroke="none"/><circle cx="24" cy="19" r="1.7" fill="#F6F5EF" stroke="none"/>
+    <circle cx="32" cy="10" r="7" fill="#F0A31B"/><path d="M38 9 L46 12 L38 14Z" fill="#10140F"/>
+    <circle cx="33" cy="9" r="1.6" fill="#10140F" stroke="none"/>
+    <path d="M28 4 L26 -3 M32 3 L32 -5 M36 4 L38 -3" fill="none" stroke-linecap="round" stroke="#D6336C" stroke-width="2.6"/>
+    <path d="M12 30 L12 36 M20 30 L20 36" fill="none" stroke-linecap="round"/></g>`;
+}
+function solSVG(){
+  let s = '<svg viewBox="0 0 100 100" aria-hidden="true" stroke="#10140F" stroke-width="2" stroke-linejoin="round">';
+  for(let i = 0; i < 16; i++) s += `<path transform="rotate(${i * 22.5} 50 50)" d="M44 14 L50 1 L56 14Z" fill="${i % 2 ? '#12A5A0' : '#D6336C'}"/>`;
+  s += '<circle cx="50" cy="50" r="38" fill="#F0A31B"/>';
+  s += '<circle cx="50" cy="50" r="31" fill="none" stroke-dasharray="3 3.2"/>';
+  for(let i = 0; i < 8; i++) s += `<path transform="rotate(${i * 45} 50 50)" d="M50 22 L55 32 L50 36 L45 32Z" fill="#F6F5EF"/>`;
+  s += '<circle cx="50" cy="50" r="17" fill="#F6F5EF"/><circle cx="50" cy="50" r="11" fill="#12A5A0"/><circle cx="50" cy="50" r="5" fill="#10140F"/></svg>';
+  return s;
+}
+function mover3D(el, fuerza){
+  /* inclinación 3D siguiendo el dedo o el mouse (idea tomada de los "tilt cards" de React Bits) */
+  if(!el || el.dataset.tilt) return; el.dataset.tilt = '1';
+  const move = e => {
+    const g = GS(); if(!g) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    intenta(() => g.to(el, { rotationY: x * fuerza, rotationX: -y * fuerza, transformPerspective: 900, duration: .4, ease: 'power2.out', overwrite: 'auto' }));
+  };
+  const fuera = () => { const g = GS(); if(g) intenta(() => g.to(el, { rotationX: 0, rotationY: 0, duration: .6, ease: 'elastic.out(1,.6)', overwrite: 'auto' })); };
+  el.addEventListener('pointermove', move); el.addEventListener('pointerleave', fuera); el.addEventListener('pointerup', fuera);
+}
+function ambiente3D(){
+  const g = GS(); if(!g) return;
+  intenta(() => {
+    g.to('.tower-sun', { rotationY: 32, transformPerspective: 500, duration: 3.4, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    g.to('.mast-title span:first-child', { rotationX: 6, rotationY: -8, transformPerspective: 700, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    g.to('.mast-title span:last-child', { rotationX: -5, rotationY: 7, transformPerspective: 700, duration: 3.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    g.to('.mast-vine .ave', { rotation: 5, transformOrigin: '50% 100%', duration: 1.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  });
+}
 let ultimaTemp = null;
 function contarTemp(el, v){
   if(!el || ultimaTemp === v) return;
@@ -469,7 +520,7 @@ function contarTemp(el, v){
 }
 function animarPockets(){
   const g = GS(); if(!g) return;
-  intenta(() => g.from('#towerGraphic .pocket', { scale: 0, opacity: 0, duration: .35, ease: 'back.out(2)', stagger: .025, clearProps: 'transform,opacity' }));
+  intenta(() => g.from('#towerGraphic .pocket', { scale: .3, rotationY: 180, transformPerspective: 500, opacity: 0, duration: .55, ease: 'back.out(1.8)', stagger: .03, clearProps: 'transform,opacity' }));
 }
 function animarVina(sel){
   const g = GS(); if(!g) return;
@@ -480,14 +531,15 @@ function animarVina(sel){
       g.fromTo(t, { strokeDasharray: L, strokeDashoffset: L }, { strokeDashoffset: 0, duration: 1.6, ease: 'power1.inOut', clearProps: 'strokeDasharray,strokeDashoffset' });
     }
     g.from(sel + ' .leaf', { scale: 0, transformOrigin: '0 0', duration: .4, ease: 'back.out(2.5)', stagger: .12, delay: .3 });
-    g.from(sel + ' .flor', { scale: 0, rotation: -90, transformOrigin: '0 0', duration: .6, ease: 'back.out(2)', delay: 1.4 });
+    g.from(sel + ' .flor', { scale: 0, rotation: -120, transformOrigin: '0 0', duration: .8, ease: 'back.out(2)', delay: 1.4 });
+    g.from(sel + ' .ave', { scale: 0, transformOrigin: '50% 100%', duration: .6, ease: 'back.out(2.4)', delay: 1.1 });
   });
 }
 function animarTab(name){
   const g = GS(); if(!g) return;
   intenta(() => {
     g.from('#tab-' + name + ' > .card, #tab-' + name + ' > .hero, #tab-' + name + ' > h3.grp, #tab-' + name + ' > details',
-      { y: 18, opacity: 0, duration: .45, ease: 'power2.out', stagger: .07, clearProps: 'transform,opacity' });
+      { y: 26, rotationX: -28, transformPerspective: 800, transformOrigin: '50% 0%', opacity: 0, duration: .6, ease: 'power3.out', stagger: .08, clearProps: 'transform,opacity' });
     if(name === 'torre'){ window.__torreVisible = true; animarPockets(); animarVina('#towerGraphic'); }
     if(name === 'hoy') g.from('#tab-hoy .pbar i', { scaleX: 0, transformOrigin: 'left center', duration: .7, ease: 'power2.out', delay: .25, clearProps: 'transform' });
   });
@@ -600,6 +652,7 @@ function renderHero(c){
       <div class="chip"><div class="v">${c.uv != null ? Math.round(c.uv) : '—'}</div><div class="l">Índice UV</div></div>
     </div>`;
   contarTemp(hero.querySelector('.temp'), tempGrande);
+  mover3D(hero, 10);
 }
 
 function esFloracion(){
@@ -861,7 +914,7 @@ function renderTower(){
   wrap.style.height = alto + 'px';
   wrap.style.setProperty('--caida', (alto - 150) + 'px');
 
-  let h = `<div class="tower-sun">${mandalaSVG(16)}</div><div class="tower-cap"></div><div class="tower-trunk"></div><svg class="tower-vine" viewBox="0 0 280 ${alto}" aria-hidden="true">${vinaTorre(alto)}</svg>${gotasHTML()}`;
+  let h = `<div class="tower-sun">${solSVG()}</div><div class="tower-cap"></div><div class="tower-trunk"></div><svg class="tower-vine" viewBox="0 0 280 ${alto}" aria-hidden="true">${vinaTorre(alto)}</svg>${gotasHTML()}`;
   slots.forEach((s,i) => {
     const fila = Math.floor(i/2), lado = i % 2 === 0 ? 'l' : 'r';
     const p = plantaDe(s), e = estadoSlot(s);
@@ -1257,6 +1310,8 @@ async function preguntarIA(){
   cargarClima();
   animarVina('#mastVine'.replace('#mastVine', '.mast'));
   animarTab('hoy');
+  ambiente3D();
+  mover3D(document.querySelector('.mast-title'), 18);
 })();
 </script>
 <script type="module" src="sync.js"></script>
